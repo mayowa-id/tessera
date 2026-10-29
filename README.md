@@ -2,13 +2,13 @@
 
 Every shift in its place. A learning project for building a Go + Angular + PostgreSQL roster application in a monorepo.
 
-Current stage: login and organization access. Manager and employee sessions, a role-aware workspace, and the initial organization schema are implemented. Scheduling and staff editing come next. Follow [the implementation plan](docs/implementation-plan.md) for the milestones.
+Current stage: staff administration. Managers can create and edit employees, locations, job roles, and qualifications, or deactivate records while retaining their history. Draft rosters and scheduling come next. Follow [the implementation plan](docs/implementation-plan.md) for the milestones.
 
 The two primary application folders are `frontend/` (Angular) and `backend/` (Go). Each is independently deployable as its own Vercel project. Root-level documentation, contracts, and development infrastructure are shared.
 
 ## Development
 
-Requirements: Go 1.25.1+, Node 22.13.1 (Angular 21 compatible), npm 11.6.2, and Docker Compose v2. Commands below use PowerShell from the repository root. The API reads process environment variables; it does not automatically load `.env`.
+Requirements: Go 1.25.1+, Node 22.13.1 (Angular 21 compatible), npm 11.6.2, and PostgreSQL 17+ through Docker Compose v2 or a native installation. Commands below use PowerShell from the repository root. The API reads process environment variables; it does not automatically load `.env`.
 
 ```powershell
 Copy-Item .env.example .env
@@ -35,6 +35,8 @@ Port 8080 was occupied on the development machine during setup. If it is still i
 
 If you change database credentials in `.env`, update `DATABASE_URL` too. Compose initialization credentials apply only when its database volume is first created.
 
+If you already use native or managed development PostgreSQL, skip `docker compose` and set `DATABASE_URL` to that development database before running migrations. The Windows test helper below uses an entirely separate disposable cluster.
+
 ## Development accounts
 
 After applying migrations, run the repeatable seed from `backend/` against a development database. Supply a password of 12 to 72 bytes. The password is not stored in the repository or printed by the command:
@@ -57,6 +59,14 @@ All browser mutations must have the exact configured `APP_ORIGIN` and `X-Tessera
 
 The manager summary endpoint checks current membership and role on every request. Nonmembers receive 404, employees receive 403 for manager-only access, and unauthenticated requests receive 401. Organization-scoped foreign keys prevent cross-tenant employee qualifications and membership links.
 
+## Team and location management
+
+After login, managers open **Team & locations** from the workspace. Use the tabs to manage employees, locations, and job roles. Each list supports literal name search, pagination, and showing inactive records. Edit a record and clear **Active** to deactivate it; no hard-delete endpoint is exposed.
+
+Employee saves update the name, active status, and complete qualification set atomically. New qualifications must reference active roles in the same organization. An existing inactive qualification may be retained or removed, but cannot be newly assigned or re-added after removal. Location and role names are case-insensitively unique within an organization. New staff records do not automatically create login accounts.
+
+Staff endpoints share manager authorization, session validation, and mutation CSRF checks. Every collection, direct lookup, and update includes the authorized organization ID. The API uses bounded `limit`/`offset` pagination with `has_more`; defaults are 25 records and a maximum of 100.
+
 ## Checks and generation
 
 From `backend/`:
@@ -77,7 +87,15 @@ go test ./internal/auth -run TestPostgresIdentity -v
 
 The test creates and removes a unique schema and requires schema/extension privileges. Use a development or dedicated test database. It applies migrations, seeds twice, checks login/expiry/throttling, and verifies tenant restrictions in both HTTP and database constraints. Without `TEST_DATABASE_URL` it is explicitly skipped. CI supplies it automatically.
 
-From `frontend/`: `npm test -- --watch=false` and `npm run build`. Frontend tests cover readiness, login validation, expired sessions, logout CSRF headers, manager counts, and employee restrictions. Backend tests cover session rotation/revocation/expiry, origin and CSRF checks, throttling, role enforcement, and tenant isolation. CI also applies migrations against PostgreSQL and checks readiness and generated SQL freshness.
+On Windows, Docker is optional if native PostgreSQL binaries are installed. From the repository root, this helper creates a disposable loopback database, runs the complete backend suite, and stops/removes only its own generated test cluster:
+
+```powershell
+.\scripts\test-backend-postgres.ps1 -PostgresBin 'C:\Program Files\PostgreSQL\18\bin'
+```
+
+It does not use the Windows PostgreSQL service or its data directory. Use `-Port` to choose another test port if 15432 is occupied.
+
+From `frontend/`: `npm test -- --watch=false` and `npm run build`. The 14 frontend tests cover readiness, login/session behavior, employee restrictions, staff creation and deactivation, qualification selection, pagination, CSRF headers, and conflict errors. Backend tests cover identity, shared authorization, staff validation, and real database transactions/tenant boundaries. CI applies migrations against PostgreSQL and checks readiness plus generated SQL/client freshness.
 
 ## Architecture
 
@@ -88,15 +106,15 @@ flowchart LR
   Go -->|pgx / generated sqlc queries| PostgreSQL
 ```
 
-Feature modules will be added as we build them. Database constraints protect stored invariants; Go application services coordinate transactions and business rules. The OpenAPI contract describes the implemented health and authentication endpoints. Database queries are generated with sqlc; the frontend currently uses typed HttpClient services, with client generation planned before staff administration.
+Feature modules will be added as we build them. Database constraints protect stored invariants; Go application services coordinate transactions and business rules. The OpenAPI contract describes health, authentication, and staff endpoints. Database queries are generated with sqlc; staff screens use Angular HTTP services/models generated by pinned `ng-openapi-gen`.
 
-## Foundation verification
+Run `npm run generate:api` from `frontend/` after changing `contracts/openapi.yaml`. Generated clients are committed so each Vercel project can build independently without reading sibling folders. CI regenerates and checks both SQL and Angular client output for drift. Edit the contract or SQL source rather than generated files.
 
-The foundation was verified with Go tests/vet/build, Angular build and connection tests, migration-file validation, and requests through Angular's development proxy. The identity milestone adds the tests described above. Temporary smoke-test servers are stopped after verification.
+## Verification
 
-Latest identity checks passed locally: Go unit tests, vet, API and seed builds, sqlc generation, Goose migration-file validation, Angular production build, and all eight frontend tests. Database integration tests are skipped locally unless `TEST_DATABASE_URL` is supplied; these results do not verify successful login against a live database.
+Passed locally: the full Go suite including the real PostgreSQL identity/staff integration test, vet and API build; Angular production build and all 14 frontend tests; SQL and Angular client generation; and Goose migration validation/apply/rollback/re-apply. Native PostgreSQL 18 was used for isolated local verification, while CI targets PostgreSQL 17.
 
-Docker was unavailable in this environment. Applying the migration and observing successful readiness against a real PostgreSQL instance remain unverified locally; CI is configured to check those steps. Browser visual inspection has not been performed. Milestone 0 is not fully validated until the real database check succeeds.
+Database tests cover successful logins, session expiry, rate windows, repeatable seed data, cross-tenant reads and writes, qualification rollback, deactivation/history retention, and case-insensitive uniqueness. Temporary test servers are stopped after verification. Browser visual inspection has not been performed.
 
 ## Hosting
 

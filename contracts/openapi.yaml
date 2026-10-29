@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Tessera API
-  version: 0.2.0
-  description: Foundation, session authentication, and organization access. Browser requests use the frontend same-origin API proxy.
+  version: 0.3.0
+  description: Foundation, session authentication, organization access, and staff administration. Browser requests use the frontend same-origin API proxy.
 servers:
   - url: http://localhost:8080
 paths:
