@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"tessera/backend/internal/auth"
 	"tessera/backend/internal/platform"
 )
 
@@ -29,12 +30,22 @@ func run(logger *slog.Logger) error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	poolConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	// Keep each server instance's connection budget small for serverless deployments.
+	poolConfig.MaxConns = 4
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return err
 	}
 	defer pool.Close()
-	server := &http.Server{Addr: cfg.Address, Handler: platform.Router(pool, logger), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	identity, err := auth.NewHandler(auth.NewPostgresStore(pool), cfg.AppOrigin, cfg.SecureCookies, logger)
+	if err != nil {
+		return err
+	}
+	server := &http.Server{Addr: cfg.Address, Handler: platform.Router(pool, logger, identity.Register), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	result := make(chan error, 1)
 	go func() { logger.Info("API listening", "address", cfg.Address); result <- server.ListenAndServe() }()
 	select {

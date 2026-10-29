@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Tessera API
-  version: 0.1.0
-  description: Foundation endpoints. Business operations will be added in later milestones.
+  version: 0.2.0
+  description: Foundation, session authentication, and organization access. Browser requests use the frontend same-origin API proxy.
 servers:
   - url: http://localhost:8080
 paths:
@@ -59,3 +59,138 @@ paths:
                     type: string
                   request_id:
                     type: string
+  /api/auth/login:
+    post:
+      operationId: login
+      summary: Start a 12-hour browser session
+      description: Requires JSON, the configured frontend Origin, and X-Tessera-Request. Maximum 10 attempts per normalized email per 15-minute window. Successful reauthentication revokes the previous browser session.
+      parameters:
+        - $ref: '#/components/parameters/BrowserRequest'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                password: { type: string, format: password, description: '1 to 72 bytes; demo passwords require at least 12 bytes.' }
+      responses:
+        '200':
+          description: Session established through a host-only HttpOnly SameSite=Lax cookie; Secure in production
+          headers:
+            Set-Cookie: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Identity' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/auth/me:
+    get:
+      operationId: getCurrentIdentity
+      summary: Restore identity, authorized memberships, and the session-bound CSRF token
+      security: [{ session: [] }]
+      responses:
+        '200':
+          description: Current identity; response must not be cached
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Identity' }
+        '401': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke the session and expire its cookie
+      description: Requires the configured frontend Origin and the session-bound CSRF header returned by login or me.
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/BrowserRequest'
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Session revoked }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/summary:
+    get:
+      operationId: getOrganizationSummary
+      summary: Read active staff and location counts plus job-role count (manager or admin)
+      security: [{ session: [] }]
+      parameters:
+        - in: path
+          name: orgID
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Counts scoped to an authorized organization
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [employees, locations, job_roles]
+                properties:
+                  employees: { type: integer, format: int64 }
+                  locations: { type: integer, format: int64 }
+                  job_roles: { type: integer, format: int64 }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: tessera_session
+  parameters:
+    BrowserRequest:
+      in: header
+      name: X-Tessera-Request
+      required: true
+      schema: { type: string, enum: ['1'] }
+  responses:
+    Error:
+      description: Structured request error; rate-limited responses include Retry-After
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code, message, request_id]
+            properties:
+              code: { type: string }
+              message: { type: string }
+              request_id: { type: string }
+  schemas:
+    Identity:
+      type: object
+      required: [user, memberships, csrf_token]
+      properties:
+        user:
+          type: object
+          required: [id, email, display_name]
+          properties:
+            id: { type: string, format: uuid }
+            email: { type: string, format: email }
+            display_name: { type: string }
+        memberships:
+          type: array
+          items:
+            type: object
+            required: [org_id, name, timezone, role]
+            properties:
+              org_id: { type: string, format: uuid }
+              name: { type: string }
+              timezone: { type: string }
+              role: { type: string, enum: [admin, manager, employee] }
+        csrf_token: { type: string, description: 'Keep in memory; send as X-CSRF-Token on authenticated mutations.' }

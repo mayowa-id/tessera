@@ -3,11 +3,15 @@ package platform
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"strconv"
 )
 
-type Config struct{ Address, DatabaseURL string }
+type Config struct {
+	Address, DatabaseURL, AppOrigin string
+	SecureCookies                   bool
+}
 
 func LoadConfig() (Config, error) {
 	c := Config{Address: os.Getenv("HTTP_ADDR"), DatabaseURL: os.Getenv("DATABASE_URL")}
@@ -27,6 +31,28 @@ func LoadConfig() (Config, error) {
 	}
 	if c.DatabaseURL == "" {
 		return c, fmt.Errorf("DATABASE_URL is required")
+	}
+	c.AppOrigin = os.Getenv("APP_ORIGIN")
+	if c.AppOrigin == "" {
+		if os.Getenv("VERCEL") != "" {
+			return c, fmt.Errorf("APP_ORIGIN is required on Vercel")
+		}
+		c.AppOrigin = "http://localhost:4200"
+	}
+	origin, err := url.Parse(c.AppOrigin)
+	if err != nil || origin.Host == "" || (origin.Scheme != "https" && origin.Scheme != "http") || origin.User != nil || origin.Path != "" || origin.RawQuery != "" || origin.Fragment != "" {
+		return c, fmt.Errorf("APP_ORIGIN must be an HTTP(S) origin without a path")
+	}
+	c.SecureCookies = true
+	if value := os.Getenv("SESSION_COOKIE_SECURE"); value != "" {
+		c.SecureCookies, err = strconv.ParseBool(value)
+		if err != nil {
+			return c, fmt.Errorf("SESSION_COOKIE_SECURE must be true or false")
+		}
+	}
+	local := origin.Hostname() == "localhost" || origin.Hostname() == "127.0.0.1" || origin.Hostname() == "::1"
+	if !local && (origin.Scheme != "https" || !c.SecureCookies) {
+		return c, fmt.Errorf("non-local APP_ORIGIN requires HTTPS and secure cookies")
 	}
 	return c, nil
 }

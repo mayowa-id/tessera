@@ -13,7 +13,7 @@ import (
 
 type Pinger interface{ Ping(context.Context) error }
 
-func Router(db Pinger, logger *slog.Logger) http.Handler {
+func Router(db Pinger, logger *slog.Logger, register ...func(chi.Router)) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(func(next http.Handler) http.Handler {
@@ -28,6 +28,7 @@ func Router(db Pinger, logger *slog.Logger) http.Handler {
 		})
 	})
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(10 * time.Second))
 	r.Get("/api/healthz", func(w http.ResponseWriter, req *http.Request) {
 		respond(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
@@ -42,6 +43,9 @@ func Router(db Pinger, logger *slog.Logger) http.Handler {
 		}
 		respond(w, http.StatusOK, map[string]string{"status": "ready", "database": "connected"})
 	})
+	for _, routes := range register {
+		routes(r)
+	}
 	return r
 }
 

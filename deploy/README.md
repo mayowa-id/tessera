@@ -9,9 +9,11 @@ Connect the same Git repository to two Vercel projects. Each application's root 
 | Install | Configured in `frontend/vercel.json` | Go preset handles modules |
 | Build | `npm run build` | Go preset detects `cmd/api/main.go` |
 | Output | `dist/tessera-web/browser` | Go preset manages output |
-| Environment | No database credentials | Production `DATABASE_URL` |
+| Environment | No database credentials | Production `DATABASE_URL`, frontend HTTPS `APP_ORIGIN` |
 
 The backend honors Vercel's `PORT` automatically. Leave `HTTP_ADDR` unset on Vercel. Use a managed PostgreSQL database with TLS and an appropriate pooled connection endpoint and connection budget. Run Goose migrations once as a release step, not on every server start or request.
+
+Set `APP_ORIGIN` to the exact frontend origin, with no trailing slash, and keep `SESSION_COOKIE_SECURE=true` (the default). The backend refuses insecure production origins. Configure preview deployments with their exact intended frontend origin and a non-production database. The development seed is intentionally disabled on Vercel; demo users need a separate, explicitly controlled provisioning step.
 
 ## Connect the frontend to the backend
 
