@@ -1,0 +1,54 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: tessera
+          POSTGRES_PASSWORD: tessera_local
+          POSTGRES_DB: tessera
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tessera -d tessera"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://tessera:tessera_local@localhost:5432/tessera?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - run: test -z "$(gofmt -l cmd internal)"
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: go build -o bin/tessera-api ./cmd/api
+      - run: go run github.com/pressly/goose/v3/cmd/goose@v3.24.3 -dir db/migrations postgres "$DATABASE_URL" up
+      - name: Check real database readiness
+        run: |
+          ./bin/tessera-api > /tmp/tessera-api.log 2>&1 &
+          api_pid=$!
+          trap 'kill "$api_pid"' EXIT
+          curl --retry 10 --retry-connrefused --retry-delay 1 --fail http://localhost:8080/api/readyz
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm install --global npm@11.6.2
+      - run: npm ci
+      - run: npm test -- --watch=false
+      - run: npm run build

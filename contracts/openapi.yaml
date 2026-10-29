@@ -1,0 +1,61 @@
+openapi: 3.0.3
+info:
+  title: Tessera API
+  version: 0.1.0
+  description: Foundation endpoints. Business operations will be added in later milestones.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/healthz:
+    get:
+      operationId: getLiveness
+      summary: Check that the API process is alive
+      responses:
+        '200':
+          description: Process is alive; does not check the database
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+  /api/readyz:
+    get:
+      operationId: getReadiness
+      summary: Check that PostgreSQL is reachable
+      responses:
+        '200':
+          description: API and database are available
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, database]
+                properties:
+                  status:
+                    type: string
+                    enum: [ready]
+                  database:
+                    type: string
+                    enum: [connected]
+        '503':
+          description: Database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, code, message, request_id]
+                properties:
+                  status:
+                    type: string
+                    enum: [unavailable]
+                  code:
+                    type: string
+                    enum: [DATABASE_UNAVAILABLE]
+                  message:
+                    type: string
+                  request_id:
+                    type: string
