@@ -218,3 +218,35 @@ func TestExpiredAndRotatedSessions(t *testing.T) {
 		t.Fatal("expired session accepted")
 	}
 }
+
+func TestManagerMiddlewareProtectsMutations(t *testing.T) {
+	_, store := testHandler(t)
+	handler, err := NewHandler(store, "https://app.example.com", true, slog.New(slog.NewJSONHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := chi.NewRouter()
+	handler.Register(router)
+	calls := 0
+	router.Group(func(r chi.Router) {
+		r.Use(handler.RequireManager)
+		r.Post("/api/organizations/{orgID}/protected", func(w http.ResponseWriter, r *http.Request) { calls++; w.WriteHeader(204) })
+	})
+	cookie, csrf := login(t, router)
+	if request(router, "POST", "/api/organizations/org-a/protected", "{}", cookie, "").Code != 403 {
+		t.Fatal("mutation accepted without CSRF")
+	}
+	if request(router, "POST", "/api/organizations/org-b/protected", "{}", cookie, csrf).Code != 404 {
+		t.Fatal("cross-tenant mutation accepted")
+	}
+	if request(router, "POST", "/api/organizations/org-a/protected", "{}", cookie, csrf).Code != 204 {
+		t.Fatal("manager mutation rejected")
+	}
+	store.memberships["user-a"][0].Role = "employee"
+	if request(router, "POST", "/api/organizations/org-a/protected", "{}", cookie, csrf).Code != 403 {
+		t.Fatal("employee mutation accepted")
+	}
+	if calls != 1 {
+		t.Fatal("unauthorized request reached mutation handler")
+	}
+}

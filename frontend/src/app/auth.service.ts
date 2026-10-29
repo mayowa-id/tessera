@@ -52,6 +52,15 @@ export const signedInGuard: CanActivateFn = () => {
   );
 };
 
+export const managerGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  return auth.restore().pipe(
+    map(identity => !identity ? router.createUrlTree(['/login']) : identity.memberships.some(org => org.role === 'admin' || org.role === 'manager') ? true : router.createUrlTree(['/workspace'])),
+    catchError(() => of(router.createUrlTree(['/login'], { queryParams: { reason: 'unavailable' } }))),
+  );
+};
+
 export function apiError(error: unknown): string {
   if (error instanceof HttpErrorResponse) {
     if (error.status === 0) return 'Unable to reach the API. Check your connection and try again.';

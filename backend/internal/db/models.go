@@ -23,9 +23,10 @@ type EmployeeRole struct {
 }
 
 type JobRole struct {
-	ID    pgtype.UUID
-	OrgID pgtype.UUID
-	Name  string
+	ID     pgtype.UUID
+	OrgID  pgtype.UUID
+	Name   string
+	Active bool
 }
 
 type Location struct {

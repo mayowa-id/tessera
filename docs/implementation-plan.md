@@ -2,6 +2,8 @@
 
 Build a shift roster application to learn the complete process of delivering a Go API and Angular frontend in one repository. Work through runnable milestones; the original six-to-eight-week estimate is a rough guide, not a deadline.
 
+Current progress: foundation and identity code are implemented. Go unit tests/vet/build, Angular production build and eight frontend tests, sqlc generation, and migration-file validation have passed locally. The real PostgreSQL identity/tenant suite is configured for CI and can run with `TEST_DATABASE_URL`; it has not run locally because Docker/PostgreSQL is unavailable. Complete that database verification before treating milestones 0 and 1 as fully accepted. Staff administration is the next feature milestone.
+
 ## 1. Scope and decisions
 
 The first release lets a manager manage employees, create a weekly roster, assign shifts safely, and publish it. Employees sign in and see their published shifts.

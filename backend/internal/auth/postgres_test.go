@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"tessera/backend/internal/demo"
+	"tessera/backend/internal/staff"
 )
 
 // CI supplies TEST_DATABASE_URL. Each run owns an isolated schema, never application tables.
@@ -83,6 +84,7 @@ func TestPostgresIdentity(t *testing.T) {
 	}
 	router := chi.NewRouter()
 	handler.Register(router)
+	staff.NewHandler(staff.NewPostgresStore(pool), handler.RequireManager, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
 	w := request(router, "POST", "/api/auth/login", `{"email":"manager@tessera.local","password":"correct-password"}`, nil, "")
 	if w.Code != 200 {
 		t.Fatalf("database login: %d %s", w.Code, w.Body)
@@ -128,6 +130,7 @@ func TestPostgresIdentity(t *testing.T) {
 	if request(router, "GET", "/api/organizations/"+orgID+"/summary", "", employeeLogin.Result().Cookies()[0], "").Code != 403 {
 		t.Fatal("employee manager access allowed")
 	}
+	exerciseStaffAdministration(t, ctx, pool, router, cookie, employeeLogin.Result().Cookies()[0], csrfToken(cookie.Value), orgID, foreignOrg, foreignRole)
 	if _, err = pool.Exec(ctx, `UPDATE sessions SET expires_at=now()-interval '1 second' WHERE token_hash=$1`, tokenHash(cookie.Value)); err != nil {
 		t.Fatal(err)
 	}

@@ -94,6 +94,8 @@ Feature modules will be added as we build them. Database constraints protect sto
 
 The foundation was verified with Go tests/vet/build, Angular build and connection tests, migration-file validation, and requests through Angular's development proxy. The identity milestone adds the tests described above. Temporary smoke-test servers are stopped after verification.
 
+Latest identity checks passed locally: Go unit tests, vet, API and seed builds, sqlc generation, Goose migration-file validation, Angular production build, and all eight frontend tests. Database integration tests are skipped locally unless `TEST_DATABASE_URL` is supplied; these results do not verify successful login against a live database.
+
 Docker was unavailable in this environment. Applying the migration and observing successful readiness against a real PostgreSQL instance remain unverified locally; CI is configured to check those steps. Browser visual inspection has not been performed. Milestone 0 is not fully validated until the real database check succeeds.
 
 ## Hosting

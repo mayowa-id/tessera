@@ -147,13 +147,335 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/employees:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+    get:
+      tags: [Staff]
+      operationId: listEmployees
+      summary: List employees with bounded pagination and literal name search
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/IncludeInactive'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmployeePage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Staff]
+      operationId: createEmployee
+      summary: Create a staff record without a login
+      description: Manager/admin only. Requires the configured Origin and the browser/CSRF headers supplied by the session interceptor.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmployeeInput' }
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Employee' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/employees/{id}:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+      - $ref: '#/components/parameters/RecordID'
+    get:
+      tags: [Staff]
+      operationId: getEmployee
+      summary: Read a employee in the authorized organization
+      security: [{ session: [] }]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Employee' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [Staff]
+      operationId: updateEmployee
+      summary: Update or deactivate a employee
+      description: Full editable representation required. Deactivation retains the record and existing relationships. No hard-delete operation is exposed.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmployeeInput' }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Employee' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/locations:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+    get:
+      tags: [Staff]
+      operationId: listLocations
+      summary: List locations with bounded pagination and literal name search
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/IncludeInactive'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Staff]
+      operationId: createLocation
+      summary: Create a location
+      description: Manager/admin only. Requires the configured Origin and the browser/CSRF headers supplied by the session interceptor.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogInput' }
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/locations/{id}:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+      - $ref: '#/components/parameters/RecordID'
+    get:
+      tags: [Staff]
+      operationId: getLocation
+      summary: Read a location in the authorized organization
+      security: [{ session: [] }]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [Staff]
+      operationId: updateLocation
+      summary: Update or deactivate a location
+      description: Full editable representation required. Deactivation retains the record and existing relationships. No hard-delete operation is exposed.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogInput' }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/job-roles:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+    get:
+      tags: [Staff]
+      operationId: listJobRoles
+      summary: List job-roles with bounded pagination and literal name search
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/IncludeInactive'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Staff]
+      operationId: createJobRole
+      summary: Create a jobrole
+      description: Manager/admin only. Requires the configured Origin and the browser/CSRF headers supplied by the session interceptor.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogInput' }
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/job-roles/{id}:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+      - $ref: '#/components/parameters/RecordID'
+    get:
+      tags: [Staff]
+      operationId: getJobRole
+      summary: Read a jobrole in the authorized organization
+      security: [{ session: [] }]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [Staff]
+      operationId: updateJobRole
+      summary: Update or deactivate a jobrole
+      description: Full editable representation required. Deactivation retains the record and existing relationships. No hard-delete operation is exposed.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogInput' }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogItem' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
 components:
   securitySchemes:
+    csrf:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+    browserRequest:
+      type: apiKey
+      in: header
+      name: X-Tessera-Request
     session:
       type: apiKey
       in: cookie
       name: tessera_session
   parameters:
+    OrgID:
+      in: path
+      name: orgID
+      required: true
+      schema: { type: string, format: uuid }
+    RecordID:
+      in: path
+      name: id
+      required: true
+      schema: { type: string, format: uuid }
+    Limit:
+      in: query
+      name: limit
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    Offset:
+      in: query
+      name: offset
+      schema: { type: integer, minimum: 0, maximum: 100000, default: 0 }
+    Search:
+      in: query
+      name: q
+      schema: { type: string, maxLength: 120 }
+    IncludeInactive:
+      in: query
+      name: include_inactive
+      schema: { type: boolean, default: false }
     BrowserRequest:
       in: header
       name: X-Tessera-Request
@@ -172,6 +494,63 @@ components:
               message: { type: string }
               request_id: { type: string }
   schemas:
+    Employee:
+      type: object
+      required: [id, display_name, active, job_role_ids]
+      properties:
+        id: { type: string, format: uuid }
+        display_name: { type: string }
+        active: { type: boolean }
+        job_role_ids:
+          type: array
+          items: { type: string, format: uuid }
+    EmployeeInput:
+      type: object
+      additionalProperties: false
+      required: [display_name, active, job_role_ids]
+      properties:
+        display_name: { type: string, minLength: 1, maxLength: 120 }
+        active: { type: boolean }
+        job_role_ids:
+          type: array
+          maxItems: 100
+          uniqueItems: true
+          description: Existing inactive qualifications may be retained; new qualifications must reference active roles in this organization.
+          items: { type: string, format: uuid }
+    CatalogItem:
+      type: object
+      required: [id, name, active]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        active: { type: boolean }
+    CatalogInput:
+      type: object
+      additionalProperties: false
+      required: [name, active]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        active: { type: boolean }
+    EmployeePage:
+      type: object
+      required: [items, offset, limit, has_more]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Employee' }
+        offset: { type: integer }
+        limit: { type: integer }
+        has_more: { type: boolean }
+    CatalogPage:
+      type: object
+      required: [items, offset, limit, has_more]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CatalogItem' }
+        offset: { type: integer }
+        limit: { type: integer }
+        has_more: { type: boolean }
     Identity:
       type: object
       required: [user, memberships, csrf_token]
