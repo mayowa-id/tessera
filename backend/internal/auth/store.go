@@ -18,6 +18,7 @@ type User struct {
 	Email        string `json:"email"`
 	DisplayName  string `json:"display_name"`
 	PasswordHash string `json:"-"`
+	Verified     bool   `json:"-"`
 }
 
 type Membership struct {
@@ -58,7 +59,7 @@ func notFound(err error) error {
 
 func (s *PostgresStore) FindUser(ctx context.Context, email string) (User, error) {
 	row, err := s.queries.FindLoginUser(ctx, email)
-	return User{ID: row.ID, Email: row.Email, DisplayName: row.DisplayName, PasswordHash: row.PasswordHash}, notFound(err)
+	return User{ID: row.ID, Email: row.Email, DisplayName: row.DisplayName, PasswordHash: row.PasswordHash, Verified: row.EmailVerified}, notFound(err)
 }
 func (s *PostgresStore) SessionUser(ctx context.Context, hash []byte) (User, error) {
 	row, err := s.queries.SessionUser(ctx, hash)

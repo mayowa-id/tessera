@@ -53,14 +53,15 @@ func (q *Queries) DeleteSession(ctx context.Context, tokenHash []byte) error {
 }
 
 const findLoginUser = `-- name: FindLoginUser :one
-SELECT id::text AS id, email, display_name, password_hash FROM users WHERE email = $1
+SELECT id::text AS id, email, display_name, password_hash,email_verified FROM users WHERE email = $1
 `
 
 type FindLoginUserRow struct {
-	ID           string
-	Email        string
-	DisplayName  string
-	PasswordHash string
+	ID            string
+	Email         string
+	DisplayName   string
+	PasswordHash  string
+	EmailVerified bool
 }
 
 func (q *Queries) FindLoginUser(ctx context.Context, email string) (FindLoginUserRow, error) {
@@ -71,6 +72,7 @@ func (q *Queries) FindLoginUser(ctx context.Context, email string) (FindLoginUse
 		&i.Email,
 		&i.DisplayName,
 		&i.PasswordHash,
+		&i.EmailVerified,
 	)
 	return i, err
 }
@@ -97,7 +99,7 @@ func (q *Queries) OrganizationSummary(ctx context.Context, orgID string) (Organi
 const sessionUser = `-- name: SessionUser :one
 SELECT u.id::text AS id, u.email, u.display_name
 FROM sessions s JOIN users u ON u.id = s.user_id
-WHERE s.token_hash = $1 AND s.expires_at > now()
+WHERE s.token_hash = $1 AND s.expires_at > now() AND u.email_verified
 `
 
 type SessionUserRow struct {

@@ -2,6 +2,25 @@ package platform
 
 import "testing"
 
+func TestPrefixedDatabaseURL(t *testing.T) {
+	t.Setenv("DATABASE_URL", "")
+	t.Setenv("TS_POSTGRES_URL", "postgres://prefixed/database?sslmode=require")
+	t.Setenv("TS_DATABASE_URL", "postgres://fallback/database?sslmode=require")
+	t.Setenv("APP_ORIGIN", "https://tessera-ui.vercel.app")
+	t.Setenv("SESSION_COOKIE_SECURE", "true")
+	t.Setenv("HTTP_ADDR", "")
+	t.Setenv("PORT", "")
+	c, err := LoadConfig()
+	if err != nil || c.DatabaseURL != "postgres://prefixed/database?sslmode=require" {
+		t.Fatalf("prefixed configuration: %+v %v", c, err)
+	}
+	t.Setenv("DATABASE_URL", "postgres://explicit/database?sslmode=require")
+	c, err = LoadConfig()
+	if err != nil || c.DatabaseURL != "postgres://explicit/database?sslmode=require" {
+		t.Fatalf("explicit precedence: %+v %v", c, err)
+	}
+}
+
 func TestListenAddress(t *testing.T) {
 	for _, tc := range []struct {
 		name, port, address, want string

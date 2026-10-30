@@ -73,7 +73,7 @@ func testHandler(t *testing.T) (http.Handler, *memoryStore) {
 		t.Fatal(err)
 	}
 	store := &memoryStore{
-		users:       map[string]User{"manager@example.com": {ID: "user-a", Email: "manager@example.com", DisplayName: "Alex", PasswordHash: string(hash)}},
+		users:       map[string]User{"manager@example.com": {ID: "user-a", Email: "manager@example.com", DisplayName: "Alex", PasswordHash: string(hash), Verified: true}},
 		sessions:    make(map[string]memorySession),
 		memberships: map[string][]Membership{"user-a": {{OrgID: "org-a", Name: "Team A", Role: "manager", Timezone: "Africa/Lagos"}}},
 		attempts:    make(map[string]int32),

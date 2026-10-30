@@ -10,6 +10,8 @@ import { BaseService } from '../base-service';
 import { ApiConfiguration } from '../api-configuration';
 import { StrictHttpResponse } from '../strict-http-response';
 
+import { acceptTeamInvitation } from '../fn/operations/accept-team-invitation';
+import { AcceptTeamInvitation$Params } from '../fn/operations/accept-team-invitation';
 import { getCurrentIdentity } from '../fn/operations/get-current-identity';
 import { GetCurrentIdentity$Params } from '../fn/operations/get-current-identity';
 import { getLiveness } from '../fn/operations/get-liveness';
@@ -19,15 +21,296 @@ import { GetOrganizationSummary$Params } from '../fn/operations/get-organization
 import { getReadiness } from '../fn/operations/get-readiness';
 import { GetReadiness$Params } from '../fn/operations/get-readiness';
 import { Identity } from '../models/identity';
+import { inviteTeammate } from '../fn/operations/invite-teammate';
+import { InviteTeammate$Params } from '../fn/operations/invite-teammate';
 import { login } from '../fn/operations/login';
 import { Login$Params } from '../fn/operations/login';
 import { logout } from '../fn/operations/logout';
 import { Logout$Params } from '../fn/operations/logout';
+import { requestPasswordReset } from '../fn/operations/request-password-reset';
+import { RequestPasswordReset$Params } from '../fn/operations/request-password-reset';
+import { resendVerification } from '../fn/operations/resend-verification';
+import { ResendVerification$Params } from '../fn/operations/resend-verification';
+import { resetPassword } from '../fn/operations/reset-password';
+import { ResetPassword$Params } from '../fn/operations/reset-password';
+import { signupTeam } from '../fn/operations/signup-team';
+import { SignupTeam$Params } from '../fn/operations/signup-team';
+import { verifyOwnerEmail } from '../fn/operations/verify-owner-email';
+import { VerifyOwnerEmail$Params } from '../fn/operations/verify-owner-email';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService extends BaseService {
   constructor(config: ApiConfiguration, http: HttpClient) {
     super(config, http);
+  }
+
+  /** Path part for operation `signupTeam()` */
+  static readonly SignupTeamPath = '/api/auth/signup';
+
+  /**
+   * Create a pending owner account and isolated team; send verification email.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `signupTeam()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  signupTeam$Response(params: SignupTeam$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+'message': string;
+}>> {
+    const obs = signupTeam(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Create a pending owner account and isolated team; send verification email.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `signupTeam$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  signupTeam(params: SignupTeam$Params, context?: HttpContext): Observable<{
+'message': string;
+}> {
+    const resp = this.signupTeam$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<{
+'message': string;
+}>): {
+'message': string;
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `resendVerification()` */
+  static readonly ResendVerificationPath = '/api/auth/resend';
+
+  /**
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `resendVerification()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  resendVerification$Response(params: ResendVerification$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+'message': string;
+}>> {
+    const obs = resendVerification(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `resendVerification$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  resendVerification(params: ResendVerification$Params, context?: HttpContext): Observable<{
+'message': string;
+}> {
+    const resp = this.resendVerification$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<{
+'message': string;
+}>): {
+'message': string;
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `requestPasswordReset()` */
+  static readonly RequestPasswordResetPath = '/api/auth/forgot-password';
+
+  /**
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `requestPasswordReset()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  requestPasswordReset$Response(params: RequestPasswordReset$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+'message': string;
+}>> {
+    const obs = requestPasswordReset(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `requestPasswordReset$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  requestPasswordReset(params: RequestPasswordReset$Params, context?: HttpContext): Observable<{
+'message': string;
+}> {
+    const resp = this.requestPasswordReset$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<{
+'message': string;
+}>): {
+'message': string;
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `verifyOwnerEmail()` */
+  static readonly VerifyOwnerEmailPath = '/api/auth/verify';
+
+  /**
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `verifyOwnerEmail()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  verifyOwnerEmail$Response(params: VerifyOwnerEmail$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+'message': string;
+}>> {
+    const obs = verifyOwnerEmail(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `verifyOwnerEmail$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  verifyOwnerEmail(params: VerifyOwnerEmail$Params, context?: HttpContext): Observable<{
+'message': string;
+}> {
+    const resp = this.verifyOwnerEmail$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<{
+'message': string;
+}>): {
+'message': string;
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `resetPassword()` */
+  static readonly ResetPasswordPath = '/api/auth/reset-password';
+
+  /**
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `resetPassword()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  resetPassword$Response(params: ResetPassword$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+'message': string;
+}>> {
+    const obs = resetPassword(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `resetPassword$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  resetPassword(params: ResetPassword$Params, context?: HttpContext): Observable<{
+'message': string;
+}> {
+    const resp = this.resetPassword$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<{
+'message': string;
+}>): {
+'message': string;
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `acceptTeamInvitation()` */
+  static readonly AcceptTeamInvitationPath = '/api/auth/join';
+
+  /**
+   * Accept a one-use invitation; existing accounts must supply their existing password.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `acceptTeamInvitation()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  acceptTeamInvitation$Response(params: AcceptTeamInvitation$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+'message': string;
+}>> {
+    const obs = acceptTeamInvitation(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Accept a one-use invitation; existing accounts must supply their existing password.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `acceptTeamInvitation$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  acceptTeamInvitation(params: AcceptTeamInvitation$Params, context?: HttpContext): Observable<{
+'message': string;
+}> {
+    const resp = this.acceptTeamInvitation$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<{
+'message': string;
+}>): {
+'message': string;
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `inviteTeammate()` */
+  static readonly InviteTeammatePath = '/api/organizations/{orgID}/invitations';
+
+  /**
+   * Invite or replace a pending invitation; manager invitations require admin access.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `inviteTeammate()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  inviteTeammate$Response(params: InviteTeammate$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+'message': string;
+}>> {
+    const obs = inviteTeammate(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Invite or replace a pending invitation; manager invitations require admin access.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `inviteTeammate$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  inviteTeammate(params: InviteTeammate$Params, context?: HttpContext): Observable<{
+'message': string;
+}> {
+    const resp = this.inviteTeammate$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<{
+'message': string;
+}>): {
+'message': string;
+} => r.body)
+    );
   }
 
   /** Path part for operation `getLiveness()` */

@@ -44,7 +44,7 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, password string) error {
 		{"employee@tessera.local", "Sam Taylor", "employee"},
 	} {
 		var userID, employeeID string
-		err = tx.QueryRow(ctx, `INSERT INTO users (email,display_name,password_hash) VALUES ($1,$2,$3) ON CONFLICT (email) DO UPDATE SET display_name=EXCLUDED.display_name,password_hash=EXCLUDED.password_hash RETURNING id::text`, person.email, person.name, string(hash)).Scan(&userID)
+		err = tx.QueryRow(ctx, `INSERT INTO users (email,display_name,password_hash,email_verified) VALUES ($1,$2,$3,true) ON CONFLICT (email) DO UPDATE SET display_name=EXCLUDED.display_name,password_hash=EXCLUDED.password_hash,email_verified=true RETURNING id::text`, person.email, person.name, string(hash)).Scan(&userID)
 		if err != nil {
 			return err
 		}

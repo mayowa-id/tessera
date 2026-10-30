@@ -28,6 +28,13 @@ type AuditEvent struct {
 	CreatedAt   pgtype.Timestamptz
 }
 
+type AuthToken struct {
+	TokenHash []byte
+	UserID    pgtype.UUID
+	Purpose   string
+	ExpiresAt pgtype.Timestamptz
+}
+
 type Employee struct {
 	ID          pgtype.UUID
 	OrgID       pgtype.UUID
@@ -68,6 +75,12 @@ type Membership struct {
 	Role   string
 }
 
+type OnboardingLimit struct {
+	KeyHash   []byte
+	Attempts  int32
+	WindowEnd pgtype.Timestamptz
+}
+
 type Organization struct {
 	ID       pgtype.UUID
 	Slug     string
@@ -101,10 +114,26 @@ type Shift struct {
 	During    pgtype.Range[pgtype.Timestamptz]
 }
 
+type TeamInvitation struct {
+	ID          pgtype.UUID
+	OrgID       pgtype.UUID
+	EmployeeID  pgtype.UUID
+	Email       string
+	DisplayName string
+	Role        string
+	TokenHash   []byte
+	InvitedBy   pgtype.UUID
+	ExpiresAt   pgtype.Timestamptz
+	AcceptedAt  pgtype.Timestamptz
+	RevokedAt   pgtype.Timestamptz
+	CreatedAt   pgtype.Timestamptz
+}
+
 type User struct {
-	ID           pgtype.UUID
-	Email        string
-	DisplayName  string
-	PasswordHash string
-	CreatedAt    pgtype.Timestamptz
+	ID            pgtype.UUID
+	Email         string
+	DisplayName   string
+	PasswordHash  string
+	CreatedAt     pgtype.Timestamptz
+	EmailVerified bool
 }
