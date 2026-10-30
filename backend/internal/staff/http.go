@@ -247,6 +247,8 @@ func (h *Handler) storeFailure(w http.ResponseWriter, r *http.Request, err error
 		h.fail(w, r, 422, "INVALID_QUALIFICATIONS", "Choose roles from this organization. Inactive roles cannot be newly assigned.")
 	case errors.Is(err, ErrNameInUse):
 		h.fail(w, r, 409, "NAME_IN_USE", "That name is already in use in this organization.")
+	case errors.Is(err, ErrPublishedAssignment):
+		h.fail(w, r, 409, "PUBLISHED_ASSIGNMENT_PROTECTED", "A future published shift needs this record or qualification. Keep it active and retain the qualification until those shifts end.")
 	default:
 		h.logger.Error("staff request failed", "request_id", middleware.GetReqID(r.Context()), "error", err)
 		h.fail(w, r, 503, "SERVICE_UNAVAILABLE", "The service is unavailable. Please try again.")

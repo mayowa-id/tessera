@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"tessera/backend/internal/audit"
 	"tessera/backend/internal/db"
 	"tessera/backend/internal/scheduling"
 )
@@ -87,6 +88,9 @@ func (s *PostgresStore) Create(ctx context.Context, org, location, week string) 
 	result, err := loadRoster(ctx, q, org, id)
 	if err != nil {
 		return Roster{}, mapError(err)
+	}
+	if err = audit.Record(ctx, q, org, "roster", id, result.LocationName, "roster.created", nil, result); err != nil {
+		return Roster{}, err
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return Roster{}, mapError(err)
@@ -248,6 +252,21 @@ func (s *PostgresStore) change(ctx context.Context, org, rosterID string, comman
 		if err != nil {
 			return Result{}, err
 		}
+	}
+	var before, after any
+	if command.Action != "create" {
+		before = current
+	}
+	if command.Action != "delete" {
+		after = result
+	}
+	label := result.JobRoleName
+	if label == "" {
+		label = current.JobRoleName
+	}
+	actions := map[string]string{"create": "shift.created", "update": "shift.updated", "assign": "shift.assigned", "unassign": "shift.unassigned", "delete": "shift.deleted"}
+	if err = audit.Record(ctx, q, org, "shift", command.ShiftID, label, actions[command.Action], before, after); err != nil {
+		return Result{}, err
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return Result{}, err

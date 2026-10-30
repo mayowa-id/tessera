@@ -3,8 +3,10 @@
 
 export interface ScheduleViolation {
   code: string;
+  employee_id?: string;
   message: string;
   related_shift_id?: string;
   severity: 'hard' | 'warning';
+  shift_id?: string;
   week_start?: string;
 }

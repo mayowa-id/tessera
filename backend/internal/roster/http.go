@@ -9,22 +9,25 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"tessera/backend/internal/requestctx"
 )
 
 var uuid = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 type Handler struct {
-	store     Store
-	authorize func(http.Handler) http.Handler
-	logger    *slog.Logger
+	store           Store
+	authorize       func(http.Handler) http.Handler
+	memberAuthorize func(http.Handler) http.Handler
+	logger          *slog.Logger
 }
 
-func NewHandler(store Store, authorize func(http.Handler) http.Handler, logger *slog.Logger) *Handler {
-	return &Handler{store, authorize, logger}
+func NewHandler(store Store, authorize, memberAuthorize func(http.Handler) http.Handler, logger *slog.Logger) *Handler {
+	return &Handler{store: store, authorize: authorize, memberAuthorize: memberAuthorize, logger: logger}
 }
 func (h *Handler) Register(r chi.Router) {
 	r.Group(func(r chi.Router) {
@@ -33,12 +36,68 @@ func (h *Handler) Register(r chi.Router) {
 		r.Get(base, h.list)
 		r.Post(base, h.create)
 		r.Get(base+"/{rosterID}", h.get)
+		r.Post(base+"/{rosterID}/publish", h.transition)
+		r.Post(base+"/{rosterID}/archive", h.transition)
 		r.Post(base+"/{rosterID}/shifts", h.change)
 		r.Put(base+"/{rosterID}/shifts/{id}", h.change)
 		r.Delete(base+"/{rosterID}/shifts/{id}", h.change)
 		r.Put(base+"/{rosterID}/shifts/{id}/assignment", h.change)
 		r.Delete(base+"/{rosterID}/shifts/{id}/assignment", h.change)
 	})
+	r.Group(func(r chi.Router) {
+		r.Use(h.memberAuthorize)
+		r.Get("/api/organizations/{orgID}/my-shifts", h.myShifts)
+	})
+}
+
+func (h *Handler) transition(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "rosterID")
+	if !h.validID(w, r, id) {
+		return
+	}
+	action := "publish"
+	if strings.HasSuffix(r.URL.Path, "/archive") {
+		action = "archive"
+	}
+	result, err := h.store.Transition(r.Context(), chi.URLParam(r, "orgID"), id, action)
+	if err != nil {
+		h.failure(w, r, err)
+		return
+	}
+	respond(w, 200, result)
+}
+func (h *Handler) myShifts(w http.ResponseWriter, r *http.Request) {
+	from, first := time.Parse(time.RFC3339Nano, r.URL.Query().Get("from"))
+	to, second := time.Parse(time.RFC3339Nano, r.URL.Query().Get("to"))
+	if first != nil || second != nil || !to.After(from) || to.Sub(from) > 62*24*time.Hour {
+		h.fail(w, r, 422, "INVALID_RANGE", "Choose an explicit-offset range of more than zero and at most 62 days.")
+		return
+	}
+	limit, offset := int64(25), int64(0)
+	for name, target := range map[string]*int64{"limit": &limit, "offset": &offset} {
+		if value := r.URL.Query().Get(name); value != "" {
+			parsed, err := strconv.ParseInt(value, 10, 32)
+			if err != nil {
+				h.fail(w, r, 422, "INVALID_PAGE", "Invalid pagination.")
+				return
+			}
+			*target = parsed
+		}
+	}
+	if limit < 1 || limit > 100 || offset < 0 || offset > 100000 {
+		h.fail(w, r, 422, "INVALID_PAGE", "Use limit 1-100 and offset 0-100000.")
+		return
+	}
+	result, err := h.store.MyShifts(r.Context(), chi.URLParam(r, "orgID"), requestctx.UserID(r.Context()), from, to, int32(limit), int32(offset))
+	if err != nil {
+		h.failure(w, r, err)
+		return
+	}
+	more := len(result) > int(limit)
+	if more {
+		result = result[:limit]
+	}
+	respond(w, 200, map[string]any{"items": result, "limit": limit, "offset": offset, "has_more": more})
 }
 func validWeek(value string) bool {
 	parsed, err := time.Parse(time.DateOnly, value)
@@ -211,6 +270,10 @@ func (h *Handler) failure(w http.ResponseWriter, r *http.Request, err error) {
 		h.fail(w, r, 409, "ROSTER_EXISTS", "A roster already exists for that location and week.")
 	case errors.Is(err, ErrDraft):
 		h.fail(w, r, 409, "ROSTER_IMMUTABLE", "Only a draft roster can be changed.")
+	case errors.Is(err, ErrTransition):
+		h.fail(w, r, 409, "INVALID_TRANSITION", "This roster cannot make that state transition.")
+	case errors.Is(err, ErrNotEnded):
+		h.fail(w, r, 422, "ROSTER_NOT_ENDED", "Archive only after the roster week and all its shifts have ended.")
 	case errors.Is(err, ErrInvalid):
 		h.fail(w, r, 422, "INVALID_SCHEDULE", "Check the active role, location, and shift times. Shifts must start within the roster week and last at most 24 hours.")
 	default:

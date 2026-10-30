@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"tessera/backend/internal/audit"
 	"tessera/backend/internal/auth"
 	"tessera/backend/internal/platform"
 	"tessera/backend/internal/roster"
@@ -48,8 +49,9 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 	staffAdmin := staff.NewHandler(staff.NewPostgresStore(pool), identity.RequireManager, logger)
-	rosterAdmin := roster.NewHandler(roster.NewPostgresStore(pool), identity.RequireManager, logger)
-	server := &http.Server{Addr: cfg.Address, Handler: platform.Router(pool, logger, identity.Register, staffAdmin.Register, rosterAdmin.Register), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	rosterAdmin := roster.NewHandler(roster.NewPostgresStore(pool), identity.RequireManager, identity.RequireMember, logger)
+	activity := audit.NewHandler(pool, identity.RequireManager, logger)
+	server := &http.Server{Addr: cfg.Address, Handler: platform.Router(pool, logger, identity.Register, staffAdmin.Register, rosterAdmin.Register, activity.Register), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	result := make(chan error, 1)
 	go func() { logger.Info("API listening", "address", cfg.Address); result <- server.ListenAndServe() }()
 	select {

@@ -15,6 +15,19 @@ type Assignment struct {
 	During     pgtype.Range[pgtype.Timestamptz]
 }
 
+type AuditEvent struct {
+	ID          pgtype.UUID
+	OrgID       pgtype.UUID
+	ActorUserID pgtype.UUID
+	EntityType  string
+	EntityID    pgtype.UUID
+	EntityLabel string
+	Action      string
+	BeforeData  []byte
+	AfterData   []byte
+	CreatedAt   pgtype.Timestamptz
+}
+
 type Employee struct {
 	ID          pgtype.UUID
 	OrgID       pgtype.UUID

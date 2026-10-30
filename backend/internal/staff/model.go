@@ -6,9 +6,10 @@ import (
 )
 
 var (
-	ErrNotFound  = errors.New("record not found")
-	ErrRole      = errors.New("job roles must belong to this organization and be active for new assignments")
-	ErrNameInUse = errors.New("name is already in use")
+	ErrNotFound            = errors.New("record not found")
+	ErrRole                = errors.New("job roles must belong to this organization and be active for new assignments")
+	ErrNameInUse           = errors.New("name is already in use")
+	ErrPublishedAssignment = errors.New("a future published shift requires this record or qualification")
 )
 
 type Employee struct {

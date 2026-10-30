@@ -2,7 +2,7 @@
 
 Every shift in its place. A learning project for building a Go + Angular + PostgreSQL roster application in a monorepo.
 
-Current stage: draft rosters and safe assignments. Managers can build weekly rosters, add/edit/remove shift slots, and assign qualified employees with scheduling checks. Publishing and employee schedule access come next. Follow [the implementation plan](docs/implementation-plan.md) for the milestones.
+Current stage: the core roster workflow is implemented. Managers can manage staff, build drafts, publish validated rosters, archive ended weeks, and review activity. Employees can view their own published shifts and archived history. Availability and leave are next. Follow [the implementation plan](docs/implementation-plan.md) for the milestones.
 
 The two primary application folders are `frontend/` (Angular) and `backend/` (Go). Each is independently deployable as its own Vercel project. Root-level documentation, contracts, and development infrastructure are shared.
 
@@ -55,7 +55,7 @@ Sign in as `manager@tessera.local` or `employee@tessera.local` with that passwor
 
 Sessions last 12 hours and are stored in PostgreSQL using SHA-256 hashes of random 256-bit cookie tokens. Cookies are host-only, HttpOnly, SameSite=Lax, scoped to `/api`, and Secure by default. Set `SESSION_COOKIE_SECURE=false` only for local development. Passwords use bcrypt cost 12; the seed validates its 72-byte limit.
 
-All browser mutations must have the exact configured `APP_ORIGIN` and `X-Tessera-Request: 1`; logout also requires the session-bound `X-CSRF-Token` returned by login or `/api/auth/me`. Angular keeps identity and CSRF state in memory, restores it from the session, and adds the required headers. No CORS allowlist is opened: production uses the frontend's same-origin API proxy. See [the authentication decisions](docs/authentication.md).
+All browser mutations must have the exact configured `APP_ORIGIN` and `X-Tessera-Request: 1`; authenticated mutations also require the session-bound `X-CSRF-Token` returned by login or `/api/auth/me`. Angular keeps identity and CSRF state in memory, restores it from the session, and adds the required headers. No CORS allowlist is opened: production uses the frontend's same-origin API proxy. See [the authentication decisions](docs/authentication.md).
 
 The manager summary endpoint checks current membership and role on every request. Nonmembers receive 404, employees receive 403 for manager-only access, and unauthenticated requests receive 401. Organization-scoped foreign keys prevent cross-tenant employee qualifications and membership links.
 
@@ -66,8 +66,6 @@ After login, managers open **Team & locations** from the workspace. Use the tabs
 Employee saves update the name, active status, and complete qualification set atomically. New qualifications must reference active roles in the same organization. An existing inactive qualification may be retained or removed, but cannot be newly assigned or re-added after removal. Location and role names are case-insensitively unique within an organization. New staff records do not automatically create login accounts.
 
 Staff endpoints share manager authorization, session validation, and mutation CSRF checks. Every collection, direct lookup, and update includes the authorized organization ID. The API uses bounded `limit`/`offset` pagination with `has_more`; defaults are 25 records and a maximum of 100.
-
-## Checks and generation
 
 ## Draft rosters
 
@@ -82,9 +80,19 @@ Open **Rosters** from a manager workspace. Choose a Monday and location, create 
 
 PostgreSQL exclusion constraints reject overlaps independently of application checks. Half-open `[start,end)` intervals allow database adjacency, but the separate rest rule may still reject adjacent assignments. Database triggers derive assignment intervals from shifts and synchronize time edits; clients cannot submit an independent reservation interval.
 
-Scheduling mutations acquire an organization-wide transaction advisory lock under explicit READ COMMITTED isolation, then lock affected employees in sorted order, the roster, and the shift. This deliberately serializes scheduling writes within each organization in v1. Employee locks coordinate with staff qualification/status edits; deadlocks/serialization failures receive at most three attempts. Future publish operations must use the same protocol.
+Scheduling mutations acquire an organization-wide transaction advisory lock under explicit READ COMMITTED isolation, then lock affected employees in sorted order, the roster, and the shift. This deliberately serializes scheduling writes within each organization in v1. Employee locks coordinate with staff qualification/status edits; deadlocks/serialization failures receive at most three attempts. Publishing and archiving use the same protocol.
 
-Changing staff qualifications or status can make an existing draft assignment unavailable. It stays visible for resolution, and subsequent assigned-shift edits revalidate it. Publishing and its complete validation pass are the next milestone.
+Changing staff qualifications or status can make an existing draft assignment unavailable. It stays visible for resolution, and assigned-shift edits and publication revalidate it.
+
+## Publish, employee schedules, and activity
+
+Managers publish from **Rosters** after assigning every slot and saving or cancelling any open edit. Confirmation triggers a complete validation of the latest stored roster under the scheduling lock. Empty rosters, missing assignments, inactive records, and hard rule violations block publication. Weekly-hour warnings are returned without blocking. The response contains the validated snapshot, so concurrent additions cannot leave the screen showing an older draft.
+
+Published rosters are frozen in v1. Staff edits cannot deactivate employees, roles, or locations, or remove qualifications needed by future published shifts. Archive is available only after both the local roster week and every shift (including overnight spillovers) have ended. There is no published-roster amendment flow yet.
+
+**My shifts** is available to any signed-in organization member. It reads the user's linked employee record from the session, never from a submitted employee ID, and shows only their own published assignments and archived history. Date ranges are bounded to 62 elapsed days and support pagination. Drafts are excluded.
+
+Managers use **Activity** to see staff and roster changes with actor names and timestamps. Before/after snapshots and the business mutation commit in one transaction. Audit-write failure rolls back the mutation; failed business operations produce no event. PostgreSQL rejects updates, deletes, and truncation of audit events. The explicit local seed is a maintenance operation and does not impersonate an authenticated user in the activity log.
 
 ## Checks and generation
 
@@ -116,7 +124,15 @@ It does not use the Windows PostgreSQL service or its data directory. Use `-Port
 
 Add `-CheckMigrations` to validate and apply all migrations, roll back the latest migration, re-apply it, and then run the suite in the same disposable instance.
 
-From `frontend/`: `npm test -- --watch=false` and `npm run build`. The 23 frontend tests cover readiness, identity, staff administration, local/DST time conversion, and draft creation/assignment/conflict/unassignment/removal. Backend tests include pure scheduling rules and real database concurrency, interval triggers, transactions, and tenant boundaries. CI applies migrations against PostgreSQL and checks readiness plus generated SQL/client freshness.
+For the complete browser workflow on Windows with Microsoft Edge installed:
+
+```powershell
+.\scripts\test-backend-postgres.ps1 -BrowserSmoke
+```
+
+This also starts temporary API/Angular servers on available loopback ports, seeds random-password demo accounts, and runs the manager-to-employee publication smoke test in headless Edge. It shuts down and removes its test services afterward. The last screenshot is retained at `.cache/publication-smoke.png`, and server diagnostics at `.cache/publication-browser/`. CI runs the same browser test with Chromium. `frontend/e2e/publication.smoke.mjs` accepts only a local `E2E_BASE_URL` and takes the seeded password through `E2E_PASSWORD`.
+
+From `frontend/`: `npm test -- --watch=false` and `npm run build`. The 30 frontend tests cover identity/staff behavior, DST conversion, roster operations, confirmed assignment rendering, publication/archival, personal schedules, and activity. Backend tests include pure rules, real concurrency, interval triggers, publication privacy, and transaction/audit invariants. CI checks migrations, generated clients/SQL, unit/integration tests, and the browser workflow.
 
 ## Architecture
 
@@ -127,15 +143,15 @@ flowchart LR
   Go -->|pgx / generated sqlc queries| PostgreSQL
 ```
 
-Feature modules will be added as we build them. Database constraints protect stored invariants; Go application services coordinate transactions and business rules. The OpenAPI contract describes health, identity, staff, and draft scheduling endpoints. Database queries are generated with sqlc; staff and roster screens use generated Angular HTTP services/models. Client generation uses LF line endings for reproducibility across Windows and Linux.
+Feature modules will be added as we build them. Database constraints protect stored invariants; Go application services coordinate transactions and business rules. OpenAPI describes the implemented health, identity, staff, roster lifecycle, personal-schedule, and activity endpoints. Database queries use sqlc; feature screens use generated Angular HTTP services/models. Client generation uses LF line endings for reproducibility across Windows and Linux.
 
 Run `npm run generate:api` from `frontend/` after changing `contracts/openapi.yaml`. Generated clients are committed so each Vercel project can build independently without reading sibling folders. CI regenerates and checks both SQL and Angular client output for drift. Edit the contract or SQL source rather than generated files.
 
 ## Verification
 
-Passed locally: the full Go suite including real PostgreSQL identity/staff/roster integration, vet and API build; Angular production build and all 23 frontend tests; SQL and Angular client generation; and Goose migration checks. Native PostgreSQL 18 is used for isolated local verification, while CI targets PostgreSQL 17.
+Passed locally: the full Go suite with real PostgreSQL identity/staff/roster/publication/audit integration; vet and API build; Angular production build and all 30 frontend tests; SQL/Angular client generation; migration apply/rollback/re-apply; and the headless Edge browser smoke. Native PostgreSQL 18 is used locally; CI targets PostgreSQL 17 and Chromium.
 
-Database tests cover identity/staff behavior, concurrent overlapping assignment (one winner), concurrent non-overlapping assignments against a hard weekly cap, cross-week rest, warnings, conflicting shift-edit rollback, trigger synchronization, forged interval rejection, tenant boundaries, and immutable non-draft state. Temporary test servers are stopped after verification. Browser visual inspection has not been performed.
+Database tests cover assignment races, aggregate rules, interval synchronization, forged interval rejection, publish-time revalidation, publication versus assignment, employee identity scoping, archived history, future published-shift protections, append-only audit enforcement, and audit-failure rollback. The browser smoke exercises manager create/assign/publish/activity/logout, employee schedule/session restoration, and manager-route denial. The rendered employee schedule has also been visually inspected. Temporary servers are stopped after verification.
 
 ## Hosting
 

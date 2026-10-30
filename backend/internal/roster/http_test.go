@@ -8,12 +8,14 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 import "github.com/go-chi/chi/v5"
 
 func chiRouter(store Store) http.Handler {
 	router := chi.NewRouter()
-	NewHandler(store, func(next http.Handler) http.Handler { return next }, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
+	gate := func(next http.Handler) http.Handler { return next }
+	NewHandler(store, gate, gate, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
 	return router
 }
 
@@ -22,6 +24,13 @@ const testID = "11111111-1111-4111-8111-111111111111"
 type fakeStore struct {
 	command Command
 	calls   int
+}
+
+func (s *fakeStore) Transition(context.Context, string, string, string) (LifecycleResult, error) {
+	return LifecycleResult{}, nil
+}
+func (s *fakeStore) MyShifts(context.Context, string, string, time.Time, time.Time, int32, int32) ([]MyShift, error) {
+	return []MyShift{}, nil
 }
 
 func (s *fakeStore) List(context.Context, string, string, int32, int32) ([]Roster, error) {

@@ -10,6 +10,8 @@ import { BaseService } from '../base-service';
 import { ApiConfiguration } from '../api-configuration';
 import { StrictHttpResponse } from '../strict-http-response';
 
+import { archiveRoster } from '../fn/rosters/archive-roster';
+import { ArchiveRoster$Params } from '../fn/rosters/archive-roster';
 import { assignShift } from '../fn/rosters/assign-shift';
 import { AssignShift$Params } from '../fn/rosters/assign-shift';
 import { createDraftRoster } from '../fn/rosters/create-draft-roster';
@@ -22,8 +24,11 @@ import { getRoster } from '../fn/rosters/get-roster';
 import { GetRoster$Params } from '../fn/rosters/get-roster';
 import { listRosters } from '../fn/rosters/list-rosters';
 import { ListRosters$Params } from '../fn/rosters/list-rosters';
+import { publishRoster } from '../fn/rosters/publish-roster';
+import { PublishRoster$Params } from '../fn/rosters/publish-roster';
 import { Roster } from '../models/roster';
 import { RosterDetail } from '../models/roster-detail';
+import { RosterLifecycleResult } from '../models/roster-lifecycle-result';
 import { RosterPage } from '../models/roster-page';
 import { ShiftResult } from '../models/shift-result';
 import { unassignShift } from '../fn/rosters/unassign-shift';
@@ -314,6 +319,76 @@ export class RostersService extends BaseService {
     const resp = this.unassignShift$Response(params, context);
     return resp.pipe(
       map((r: StrictHttpResponse<ShiftResult>): ShiftResult => r.body)
+    );
+  }
+
+  /** Path part for operation `publishRoster()` */
+  static readonly PublishRosterPath = '/api/organizations/{orgID}/rosters/{rosterID}/publish';
+
+  /**
+   * Validate and publish a fully assigned draft.
+   *
+   * Revalidates every assignment under the scheduling transaction lock. Empty rosters, unassigned shifts, and hard violations block publication. Warnings are returned on success.
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `publishRoster()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  publishRoster$Response(params: PublishRoster$Params, context?: HttpContext): Observable<StrictHttpResponse<RosterLifecycleResult>> {
+    const obs = publishRoster(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Validate and publish a fully assigned draft.
+   *
+   * Revalidates every assignment under the scheduling transaction lock. Empty rosters, unassigned shifts, and hard violations block publication. Warnings are returned on success.
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `publishRoster$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  publishRoster(params: PublishRoster$Params, context?: HttpContext): Observable<RosterLifecycleResult> {
+    const resp = this.publishRoster$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<RosterLifecycleResult>): RosterLifecycleResult => r.body)
+    );
+  }
+
+  /** Path part for operation `archiveRoster()` */
+  static readonly ArchiveRosterPath = '/api/organizations/{orgID}/rosters/{rosterID}/archive';
+
+  /**
+   * Archive an ended published roster.
+   *
+   * Requires the local roster week and all shifts, including overnight spillovers, to have ended.
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `archiveRoster()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  archiveRoster$Response(params: ArchiveRoster$Params, context?: HttpContext): Observable<StrictHttpResponse<RosterLifecycleResult>> {
+    const obs = archiveRoster(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Archive an ended published roster.
+   *
+   * Requires the local roster week and all shifts, including overnight spillovers, to have ended.
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `archiveRoster$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  archiveRoster(params: ArchiveRoster$Params, context?: HttpContext): Observable<RosterLifecycleResult> {
+    const resp = this.archiveRoster$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<RosterLifecycleResult>): RosterLifecycleResult => r.body)
     );
   }
 
