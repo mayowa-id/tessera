@@ -10,8 +10,9 @@ A shift-planning app built with Go, Angular, and PostgreSQL. Browse a sample wor
 - Manage people, locations, and job qualifications.
 - Build weekly rosters with checks for overlapping shifts, rest time, and weekly hours.
 - Publish schedules for employees and track changes in the activity log.
+- Record unavailable time, request leave, and approve it without conflicting assignments.
 
-Light and dark themes are included. Availability and leave are next on the [roadmap](docs/implementation-plan.md).
+Light and dark themes are included. Recurring availability, roster amendments, and notifications are next on the [roadmap](docs/implementation-plan.md).
 
 ## Architecture
 
@@ -35,3 +36,5 @@ The [development guide](docs/development.md) covers setup, demo accounts, and te
 The frontend and backend deploy as separate Vercel projects, with PostgreSQL hosted separately. Resend handles verification and invitation emails.
 
 See the [deployment guide](deploy/README.md) and [signup and email setup](docs/production-onboarding.md).
+
+Planning to try it with your team? See the [community beta guide](docs/community-beta.md) and [availability and leave](docs/availability-and-leave.md).

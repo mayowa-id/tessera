@@ -21,3 +21,8 @@ export type { ScheduleViolation } from './models/schedule-violation';
 export type { Shift } from './models/shift';
 export type { ShiftInput } from './models/shift-input';
 export type { ShiftResult } from './models/shift-result';
+export type { TimeOff } from './models/time-off';
+export type { TimeOffConflict } from './models/time-off-conflict';
+export type { TimeOffInput } from './models/time-off-input';
+export type { TimeOffPage } from './models/time-off-page';
+export type { TimeOffShiftConflict } from './models/time-off-shift-conflict';

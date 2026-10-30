@@ -80,19 +80,29 @@ func (q *Queries) FindLoginUser(ctx context.Context, email string) (FindLoginUse
 const organizationSummary = `-- name: OrganizationSummary :one
 SELECT (SELECT count(*) FROM employees WHERE org_id = $1::text::uuid AND active) AS employees,
        (SELECT count(*) FROM locations WHERE org_id = $1::text::uuid AND active) AS locations,
-       (SELECT count(*) FROM job_roles WHERE org_id = $1::text::uuid AND active) AS job_roles
+       (SELECT count(*) FROM job_roles WHERE org_id = $1::text::uuid AND active) AS job_roles,
+       (SELECT count(*) FROM rosters WHERE org_id = $1::text::uuid) AS rosters,
+       (SELECT count(*) FROM rosters WHERE org_id = $1::text::uuid AND state IN ('published','archived')) AS published_rosters
 `
 
 type OrganizationSummaryRow struct {
-	Employees int64
-	Locations int64
-	JobRoles  int64
+	Employees        int64
+	Locations        int64
+	JobRoles         int64
+	Rosters          int64
+	PublishedRosters int64
 }
 
 func (q *Queries) OrganizationSummary(ctx context.Context, orgID string) (OrganizationSummaryRow, error) {
 	row := q.db.QueryRow(ctx, organizationSummary, orgID)
 	var i OrganizationSummaryRow
-	err := row.Scan(&i.Employees, &i.Locations, &i.JobRoles)
+	err := row.Scan(
+		&i.Employees,
+		&i.Locations,
+		&i.JobRoles,
+		&i.Rosters,
+		&i.PublishedRosters,
+	)
 	return i, err
 }
 

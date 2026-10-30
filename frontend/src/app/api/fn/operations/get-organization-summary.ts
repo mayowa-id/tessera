@@ -16,6 +16,8 @@ export function getOrganizationSummary(http: HttpClient, rootUrl: string, params
 'employees': number;
 'locations': number;
 'job_roles': number;
+'rosters': number;
+'published_rosters': number;
 }>> {
   const rb = new RequestBuilder(rootUrl, getOrganizationSummary.PATH, 'get');
   if (params) {
@@ -31,6 +33,8 @@ export function getOrganizationSummary(http: HttpClient, rootUrl: string, params
       'employees': number;
       'locations': number;
       'job_roles': number;
+      'rosters': number;
+      'published_rosters': number;
       }>;
     })
   );

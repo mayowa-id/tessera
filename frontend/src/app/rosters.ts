@@ -26,7 +26,7 @@ export class Rosters {
   readonly selected = signal(this.memberships().find(org => org.org_id === this.route.snapshot.queryParamMap.get('org'))?.org_id ?? this.memberships()[0]?.org_id ?? '');
   readonly membership = computed(() => this.memberships().find(org => org.org_id === this.selected()));
   readonly zone = computed(() => this.detail()?.roster.timezone ?? this.membership()?.timezone ?? 'Africa/Lagos');
-  readonly week = signal(localMonday(this.membership()?.timezone ?? 'Africa/Lagos'));
+  readonly week = signal(this.initialWeek());
   readonly locations = signal<CatalogItem[]>([]);
   readonly roles = signal<CatalogItem[]>([]);
   readonly employees = signal<Employee[]>([]);
@@ -54,6 +54,11 @@ export class Rosters {
   private detailVersion = 0;
 
   constructor() { this.loadLookups(); this.loadRosters(); }
+  private initialWeek(): string {
+    const value = this.route.snapshot.queryParamMap.get('week') ?? '';
+    const parsed = new Date(value + 'T12:00:00Z');
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(parsed.getTime()) && parsed.getUTCDay() === 1 && parsed.toISOString().slice(0,10) === value ? value : localMonday(this.membership()?.timezone ?? 'Africa/Lagos');
+  }
   changeOrganization(event: Event): void {
     this.selected.set((event.target as HTMLSelectElement).value);
     this.detail.set(null); this.week.set(localMonday(this.membership()?.timezone ?? 'Africa/Lagos'));

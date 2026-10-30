@@ -2,7 +2,7 @@
 
 Build a shift roster application to learn the complete process of delivering a Go API and Angular frontend in one repository. Work through runnable milestones; the original six-to-eight-week estimate is a rough guide, not a deadline.
 
-Current progress: the core release is implemented through publication, employee personal schedules, archival, and transactional staff/roster audit events. PostgreSQL integration tests cover scheduling/publication races, privacy, rollback, and append-only history. Angular has 30 passing tests, and the complete manager-to-employee workflow passed in headless Edge. Windows can repeat everything with `scripts/test-backend-postgres.ps1 -BrowserSmoke`; CI runs Chromium. Availability and leave are next.
+Current progress: verified team onboarding, roster publication, employee schedules, transactional audit history, dated unavailability, and leave approval are implemented. Assignment and publication check approved time off using the shared scheduling lock. The manager overview guides a new team to its first published roster. See [availability and leave](availability-and-leave.md) and [community beta](community-beta.md) for behavior, limitations, and release checks.
 
 ## 1. Scope and decisions
 
@@ -114,7 +114,7 @@ Done when a manager can create and publish a roster and an employee sees only th
 
 ### Milestone 5: Availability and leave
 
-1. Begin with dated availability windows, then add recurring local-time availability only if needed.
+1. Begin with dated unavailable windows; outside these exceptions, availability is unrestricted. Add recurring local-time availability only if needed.
 2. Add leave requests and manager approval/rejection with explicit transitions.
 3. Extend assignment validation to approved leave and availability. Absence of declared availability means unrestricted availability initially; approved leave blocks assignment.
 4. Reject leave approval if it conflicts with an existing assignment and identify shifts the manager must resolve first.
@@ -160,7 +160,7 @@ Prove separately that concurrent overlapping assignments cannot both succeed and
 
 For each milestone: explain the concept, implement one small vertical slice, run its checks, demonstrate it, and record the design tradeoff. Keep a short README with actual setup commands and an architecture diagram as the repository develops. Complete the core release before chasing the original plan's polish features.
 
-Immediate next task: Milestone 5. Add dated availability, leave requests and approvals, and integrate them with assignment/publication validation and the shared concurrency protocol.
+Milestone 5 is implemented. Next priorities for real-team feedback are published-roster amendments, notification delivery, and configurable scheduling policies; recurring availability can follow measured demand.
 
 ## References
 

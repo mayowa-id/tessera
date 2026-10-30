@@ -67,6 +67,20 @@ describe('Session access', () => {
     expect(fixture.nativeElement.textContent).toContain('Your published shifts');
   });
 
+  it('guides a new owner to a first roster and hides setup after publication', () => {
+    auth.identity.set(manager);
+    const fixture = TestBed.createComponent(Workspace);
+    http.expectOne('/api/organizations/org-a/summary').flush({ employees: 1, locations: 1, job_roles: 1, rosters: 0, published_rosters: 0 });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Create your first roster');
+    expect(fixture.nativeElement.textContent).toContain('Working solo?');
+    fixture.componentInstance.loadSummary();
+    http.expectOne('/api/organizations/org-a/summary').flush({ employees: 1, locations: 1, job_roles: 1, rosters: 1, published_rosters: 1 });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.first-week')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Manage rosters');
+  });
+
   it('validates the login form and displays rejected credentials', () => {
     const fixture = TestBed.createComponent(Login);
     http.expectOne('/api/auth/me').flush({}, { status: 401, statusText: 'Unauthorized' });

@@ -229,6 +229,11 @@ func (s *PostgresStore) change(ctx context.Context, org, rosterID string, comman
 				intervals = append(intervals, scheduling.Interval{ShiftID: row.ID, Start: row.StartsAt.Time, End: row.EndsAt.Time})
 			}
 			violations = scheduling.Check(proposed, intervals, zone, s.policy)
+			blocked, blockErr := timeOffViolations(ctx, q, org, proposed)
+			if blockErr != nil {
+				return Result{}, blockErr
+			}
+			violations = append(violations, blocked...)
 			if scheduling.HasHard(violations) {
 				return Result{}, &Conflict{violations}
 			}

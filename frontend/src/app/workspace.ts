@@ -3,14 +3,14 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService, apiError } from './auth.service';
 
-interface Summary { employees: number; locations: number; job_roles: number; }
+interface Summary { employees: number; locations: number; job_roles: number; rosters?: number; published_rosters?: number; }
 
 @Component({
   selector: 'app-workspace',
   imports: [RouterLink],
   template: `
     <div class="workspace">
-      <aside class="sidebar"><a class="wordmark" routerLink="/workspace">tessera<span>.</span></a><p class="eyebrow">YOUR WORKSPACE</p><span class="nav-current">Overview</span>@if (isManager()) { <a routerLink="/staff" [queryParams]="{ org: selected() }">Team & locations</a><a routerLink="/rosters" [queryParams]="{ org: selected() }">Rosters</a><a routerLink="/invitations" [queryParams]="{ org: selected() }">Invite teammates</a><a routerLink="/activity" [queryParams]="{ org: selected() }">Activity</a> }<a routerLink="/my-shifts" [queryParams]="{ org: selected() }">My shifts</a><a routerLink="/system">System connection</a><div class="sidebar-bottom"><span>{{ auth.identity()?.user?.display_name }}</span><small>{{ membership()?.role }}</small><button class="secondary" (click)="logout()" [disabled]="signingOut()">{{ signingOut() ? 'Signing out...' : 'Sign out' }}</button></div></aside>
+      <aside class="sidebar"><a class="wordmark" routerLink="/workspace">tessera<span>.</span></a><p class="eyebrow">YOUR WORKSPACE</p><span class="nav-current">Overview</span>@if (isManager()) { <a routerLink="/staff" [queryParams]="{ org: selected() }">Team & locations</a><a routerLink="/rosters" [queryParams]="{ org: selected() }">Rosters</a><a routerLink="/invitations" [queryParams]="{ org: selected() }">Invite teammates</a><a routerLink="/activity" [queryParams]="{ org: selected() }">Activity</a> }<a routerLink="/time-off" [queryParams]="{ org: selected() }">Availability & leave</a><a routerLink="/my-shifts" [queryParams]="{ org: selected() }">My shifts</a><a routerLink="/system">System connection</a><div class="sidebar-bottom"><span>{{ auth.identity()?.user?.display_name }}</span><small>{{ membership()?.role }}</small><button class="secondary" (click)="logout()" [disabled]="signingOut()">{{ signingOut() ? 'Signing out...' : 'Sign out' }}</button></div></aside>
       <main class="workspace-main">
         <header class="workspace-header"><span class="eyebrow">TEAM OVERVIEW</span>@if (memberships().length > 1) { <label>Organization <select (change)="selectOrganization($event)">@for (org of memberships(); track org.org_id) { <option [value]="org.org_id" [selected]="org.org_id === selected()">{{ org.name }}</option> }</select></label> } @else { <span class="organization-name">{{ membership()?.name }}</span> }</header>
         <p class="eyebrow greeting">A PLACE FOR YOUR TEAM</p><h1>Welcome, {{ firstName() }}<span class="accent">.</span></h1><p class="muted">{{ membership()?.name || 'Your workspace' }} · {{ membership()?.timezone || 'Organization access' }}</p>
@@ -18,7 +18,15 @@ interface Summary { employees: number; locations: number; job_roles: number; }
         @if (!membership()) { <section class="workspace-card"><h2>No organization access yet</h2><p>Ask your manager to add your account to an organization.</p></section> }
         @else if (isManager()) {
           <div class="stat-grid">@for (stat of stats(); track stat.label) { <section class="stat"><span>{{ stat.label }}</span><strong>{{ loading() ? '...' : stat.value }}</strong></section> }</div>
-          <section class="workspace-card"><p class="eyebrow">YOUR NEXT CHAPTER</p><h2>Your team starts here.</h2><p>Manage your team, locations, and job qualifications. Build weekly drafts and assign shifts with scheduling checks.</p><a class="text-link" routerLink="/rosters" [queryParams]="{ org: selected() }">Build a roster</a> · <a class="text-link" routerLink="/staff" [queryParams]="{ org: selected() }">Manage your team</a><span class="status-note">FOUNDATION · ACCESS & IDENTITY</span></section>
+          @if (summary() && !(summary()?.published_rosters)) {
+            <section class="workspace-card first-week"><p class="eyebrow">GET YOUR FIRST WEEK READY</p><h2>From a team to a shared plan.</h2><ol>
+              <li><div><h3>Check your location and job roles</h3><p>Your first location and Team member qualification were created at signup. Adjust them to suit your work.</p></div><a class="text-link" routerLink="/staff" [queryParams]="{org:selected()}">Review setup</a></li>
+              <li><div><h3>Bring in your people</h3><p>Invite teammates, then assign their job qualifications in Team & locations. Working solo? You can schedule yourself.</p></div><a class="text-link" routerLink="/invitations" [queryParams]="{org:selected()}">Invite teammates</a></li>
+              <li><div><h3>Build and publish your first roster</h3><p>Add shifts, assign qualified people, then publish. Employees can see published assignments in My shifts.</p></div><a class="text-link" routerLink="/rosters" [queryParams]="{org:selected()}">{{summary()?.rosters?'Continue your roster':'Create your first roster'}}</a></li>
+            </ol></section>
+          } @else {
+            <section class="workspace-card"><p class="eyebrow">KEEP THE WEEK RUNNING</p><h2>A shared plan for your people.</h2><p>Build the next roster, review leave requests, and keep qualifications up to date.</p><a class="text-link" routerLink="/rosters" [queryParams]="{org:selected()}">Manage rosters</a> · <a class="text-link" routerLink="/time-off" [queryParams]="{org:selected()}">Availability & leave</a> · <a class="text-link" routerLink="/staff" [queryParams]="{org:selected()}">Manage your team</a></section>
+          }
         } @else { <section class="workspace-card"><p class="eyebrow">YOUR SCHEDULE</p><h2>Your week, in one place.</h2><p>You're signed in to your team's workspace. Your published shifts appear in My shifts.</p><a class="text-link" routerLink="/my-shifts" [queryParams]="{ org: selected() }">View my shifts</a></section> }
       </main>
     </div>

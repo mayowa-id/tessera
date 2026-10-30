@@ -55,6 +55,11 @@
 :root{font-family:Arial,Helvetica,sans-serif;color:var(--text);background:var(--page);font-synthesis:none}*{box-sizing:border-box}body{margin:0}button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:5px}
 
 a { color: inherit; }
+.first-week ol { list-style: none; padding: 0; margin: 24px 0 0; counter-reset: setup; }
+.first-week li { counter-increment: setup; display: flex; align-items: start; gap: 16px; padding: 22px 0; border-top: 1px solid var(--border); }
+.first-week li::before { content: counter(setup); display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; color: var(--heading); border: 1px solid var(--border); font-size: 12px; }
+.first-week li > div { flex: 1; }.first-week h3 { margin: 4px 0; font-size: 14px; font-weight: 600; }.first-week li p { margin: 8px 0 0; }.first-week li > a { margin-top: 6px; white-space: nowrap; }
+@media(max-width:760px) { .first-week li { flex-wrap: wrap; }.first-week li > div { flex-basis: calc(100% - 44px); }.first-week li > a { margin-left: 44px; } }
 .appearance-bar { display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 8px 24px; background: var(--sidebar); border-bottom: 1px solid var(--border-soft); color: var(--muted); font-size: 12px; }
 .theme-switch { display: inline-flex; gap: 3px; padding: 3px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 30px; }
 .theme-switch button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); }
