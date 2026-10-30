@@ -195,6 +195,11 @@ func (s *PostgresStore) validatePublication(ctx context.Context, q *db.Queries, 
 			qualifications[key] = value
 		}
 		violations = append(violations, scheduling.Check(scheduling.Proposed{Interval: scheduling.Interval{ShiftID: shift.ID, Start: shift.StartsAt, End: shift.EndsAt}, EmployeeID: employeeID, Active: employees[employeeID], Qualified: qualified}, history[employeeID], zone, s.policy)...)
+		blocked, err := timeOffViolations(ctx, q, org, scheduling.Proposed{Interval: scheduling.Interval{ShiftID: shift.ID, Start: shift.StartsAt, End: shift.EndsAt}, EmployeeID: employeeID})
+		if err != nil {
+			return nil, err
+		}
+		violations = append(violations, blocked...)
 	}
 	unique := []scheduling.Violation{}
 	seen := map[string]bool{}

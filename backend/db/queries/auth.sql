@@ -30,4 +30,6 @@ RETURNING attempts;
 -- name: OrganizationSummary :one
 SELECT (SELECT count(*) FROM employees WHERE org_id = sqlc.arg(org_id)::text::uuid AND active) AS employees,
        (SELECT count(*) FROM locations WHERE org_id = sqlc.arg(org_id)::text::uuid AND active) AS locations,
-       (SELECT count(*) FROM job_roles WHERE org_id = sqlc.arg(org_id)::text::uuid AND active) AS job_roles;
+       (SELECT count(*) FROM job_roles WHERE org_id = sqlc.arg(org_id)::text::uuid AND active) AS job_roles,
+       (SELECT count(*) FROM rosters WHERE org_id = sqlc.arg(org_id)::text::uuid) AS rosters,
+       (SELECT count(*) FROM rosters WHERE org_id = sqlc.arg(org_id)::text::uuid AND state IN ('published','archived')) AS published_rosters;

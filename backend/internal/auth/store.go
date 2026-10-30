@@ -29,9 +29,11 @@ type Membership struct {
 }
 
 type Summary struct {
-	Employees int64 `json:"employees"`
-	Locations int64 `json:"locations"`
-	JobRoles  int64 `json:"job_roles"`
+	Employees        int64 `json:"employees"`
+	Locations        int64 `json:"locations"`
+	JobRoles         int64 `json:"job_roles"`
+	Rosters          int64 `json:"rosters"`
+	PublishedRosters int64 `json:"published_rosters"`
 }
 
 type Store interface {
@@ -87,5 +89,5 @@ func (s *PostgresStore) LoginAttempt(ctx context.Context, hash []byte) (int32, e
 }
 func (s *PostgresStore) Summary(ctx context.Context, orgID string) (Summary, error) {
 	row, err := s.queries.OrganizationSummary(ctx, orgID)
-	return Summary{Employees: row.Employees, Locations: row.Locations, JobRoles: row.JobRoles}, err
+	return Summary{Employees: row.Employees, Locations: row.Locations, JobRoles: row.JobRoles, Rosters: row.Rosters, PublishedRosters: row.PublishedRosters}, err
 }

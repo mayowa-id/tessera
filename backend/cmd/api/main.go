@@ -16,6 +16,7 @@ import (
 	"tessera/backend/internal/platform"
 	"tessera/backend/internal/roster"
 	"tessera/backend/internal/staff"
+	"tessera/backend/internal/timeoff"
 )
 
 func main() {
@@ -56,7 +57,8 @@ func run(logger *slog.Logger) error {
 	onboarding := auth.NewOnboarding(identity, pool, mailer)
 	rosterAdmin := roster.NewHandler(roster.NewPostgresStore(pool), identity.RequireManager, identity.RequireMember, logger)
 	activity := audit.NewHandler(pool, identity.RequireManager, logger)
-	server := &http.Server{Addr: cfg.Address, Handler: platform.Router(pool, logger, identity.Register, onboarding.Register, staffAdmin.Register, rosterAdmin.Register, activity.Register), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	timeOff := timeoff.NewHandler(timeoff.NewPostgresStore(pool), identity.RequireMember, identity.RequireManager, logger)
+	server := &http.Server{Addr: cfg.Address, Handler: platform.Router(pool, logger, identity.Register, onboarding.Register, staffAdmin.Register, rosterAdmin.Register, activity.Register, timeOff.Register), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	result := make(chan error, 1)
 	go func() { logger.Info("API listening", "address", cfg.Address); result <- server.ListenAndServe() }()
 	select {

@@ -525,6 +525,8 @@ export class ApiService extends BaseService {
 'employees': number;
 'locations': number;
 'job_roles': number;
+'rosters': number;
+'published_rosters': number;
 }>> {
     const obs = getOrganizationSummary(this.http, this.rootUrl, params, context);
     return obs;
@@ -544,6 +546,8 @@ export class ApiService extends BaseService {
 'employees': number;
 'locations': number;
 'job_roles': number;
+'rosters': number;
+'published_rosters': number;
 }> {
     const resp = this.getOrganizationSummary$Response(params, context);
     return resp.pipe(
@@ -551,10 +555,14 @@ export class ApiService extends BaseService {
 'employees': number;
 'locations': number;
 'job_roles': number;
+'rosters': number;
+'published_rosters': number;
 }>): {
 'employees': number;
 'locations': number;
 'job_roles': number;
+'rosters': number;
+'published_rosters': number;
 } => r.body)
     );
   }

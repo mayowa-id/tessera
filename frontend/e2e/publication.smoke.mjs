@@ -84,8 +84,65 @@ try {
   await page.reload(); await page.getByRole('heading', { name: 'Team member', exact: true }).waitFor();
   await mkdir(dirname(screenshot), { recursive: true }); await page.screenshot({ path: screenshot, fullPage: true });
   await page.goto('/rosters'); await page.waitForURL('**/workspace');
+
+  // Employee request -> manager approval -> assignment conflict -> owner cancellation.
+  const leaveWeekDate = new Date(week + 'T12:00:00Z'); leaveWeekDate.setUTCDate(leaveWeekDate.getUTCDate() + 7);
+  const leaveWeek = leaveWeekDate.toISOString().slice(0, 10);
+  const leaveDayDate = new Date(leaveWeekDate); leaveDayDate.setUTCDate(leaveDayDate.getUTCDate() + 2);
+  const leaveDay = leaveDayDate.toISOString().slice(0, 10);
+  const timeOffLink = () => page.getByRole('link', { name: 'Availability & leave', exact: true }).first();
+  const signOut = async () => {
+    await page.getByRole('link', { name: 'Overview', exact: true }).click();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click(); await page.waitForURL('**/login');
+  };
+  await timeOffLink().click();
+  await page.getByLabel('Starts', { exact: true }).fill(leaveDay + 'T09:00');
+  await page.getByLabel('Ends', { exact: true }).fill(leaveDay + 'T17:00');
+  await page.getByLabel('Reason (optional)', { exact: true }).fill('Browser leave check');
+  await page.getByRole('button', { name: 'Request leave', exact: true }).click();
+  await page.getByText('Leave requested. It will block assignments once approved.', { exact: true }).waitFor();
+  await signOut(); await login('manager@tessera.local'); await timeOffLink().click();
+  await page.getByRole('button', { name: 'Team requests', exact: true }).click();
+  const leaveCard = () => page.locator('.time-off-card').filter({ hasText: 'Browser leave check' });
+  await leaveCard().getByRole('button', { name: 'Approve', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirm approve', exact: true }).click();
+  await page.getByText('Request approved.', { exact: true }).waitFor();
+  await page.getByLabel('Status', { exact: true }).selectOption('approved');
+  await page.getByRole('button', { name: 'Show requests', exact: true }).click();
+  await leaveCard().waitFor();
+  await page.screenshot({ path: fileURLToPath(new URL('../../.cache/time-off-desktop.png', import.meta.url)), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: fileURLToPath(new URL('../../.cache/time-off-mobile.png', import.meta.url)), fullPage: true });
+  await page.setViewportSize({ width: 1365, height: 900 });
+  await page.getByRole('link', { name: 'Rosters', exact: true }).click();
+  await page.getByLabel('Week beginning Monday').fill(leaveWeek); await page.getByLabel('Week beginning Monday').press('Tab');
+  await page.getByRole('button', { name: '+ Create draft', exact: true }).click();
+  await page.getByText('Draft roster created.', { exact: true }).waitFor();
+  await page.getByRole('button', { name: '+ Add shift', exact: true }).click();
+  await page.getByLabel('Required qualification').selectOption({ label: 'Team member' });
+  await page.getByLabel('Start', { exact: true }).fill(leaveDay + 'T09:00');
+  await page.getByLabel('End', { exact: true }).fill(leaveDay + 'T17:00');
+  await page.getByRole('button', { name: 'Save shift', exact: true }).click();
+  await page.getByLabel(/^Employee for Team member at/).selectOption({ label: 'Sam Taylor' });
+  await page.locator('.schedule-violations').getByText(/approved leave/).waitFor();
+  assert.equal(await page.getByLabel(/^Employee for Team member at/).inputValue(), '');
+  await signOut(); await login('employee@tessera.local'); await timeOffLink().click();
+  await leaveCard().waitFor(); assert.match(await leaveCard().textContent(), /approved/);
+  await leaveCard().getByRole('button', { name: 'Cancel request', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirm cancel', exact: true }).click();
+  await page.getByText('Request cancelled.', { exact: true }).waitFor();
+  await signOut(); await login('manager@tessera.local');
+  await page.getByRole('link', { name: 'Rosters', exact: true }).click();
+  await page.getByLabel('Week beginning Monday').fill(leaveWeek); await page.getByLabel('Week beginning Monday').press('Tab');
+  await page.locator('.roster-picker button').filter({ hasText: 'Main site' }).click();
+  const [restored] = await Promise.all([
+    page.waitForResponse(response => response.url().endsWith('/assignment') && response.request().method() === 'PUT' && response.status() === 200),
+    page.getByLabel(/^Employee for Team member at/).selectOption({ label: 'Sam Taylor' }),
+  ]);
+  assert.equal((await restored.json()).shift.employee_id, result.shift.employee_id);
   assert.deepEqual(errors, []);
-  console.log('Browser smoke passed: manager create/assign/publish/activity/logout, employee own shifts/session restore, and manager-route denial.');
+  console.log('Browser smoke passed: publication, employee schedules, leave request/approval, blocked assignment, cancellation, and restored assignment.');
 } catch (error) {
   await mkdir(dirname(screenshot), { recursive: true });
   await page.screenshot({ path: screenshot, fullPage: true }).catch(() => {});

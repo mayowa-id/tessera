@@ -129,6 +129,22 @@ type TeamInvitation struct {
 	CreatedAt   pgtype.Timestamptz
 }
 
+type TimeOff struct {
+	ID           pgtype.UUID
+	OrgID        pgtype.UUID
+	EmployeeID   pgtype.UUID
+	Kind         string
+	Status       string
+	StartsAt     pgtype.Timestamptz
+	EndsAt       pgtype.Timestamptz
+	Reason       string
+	DecisionNote string
+	CreatedBy    pgtype.UUID
+	ReviewedBy   pgtype.UUID
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+}
+
 type User struct {
 	ID            pgtype.UUID
 	Email         string

@@ -1,0 +1,267 @@
+<div class="workspace">
+  <aside class="sidebar">
+    <a class="wordmark" routerLink="/workspace" [queryParams]="{ org: selected() }">tessera<span>.</span></a>
+    <p class="eyebrow">YOUR WORKSPACE</p>
+    <a routerLink="/workspace" [queryParams]="{ org: selected() }">Overview</a
+    ><a routerLink="/my-shifts" [queryParams]="{ org: selected() }">My shifts</a
+    ><span class="nav-current">Availability & leave</span>
+    @if (isManager()) {
+      <a routerLink="/staff" [queryParams]="{ org: selected() }">Team & locations</a
+      ><a routerLink="/rosters" [queryParams]="{ org: selected() }">Rosters</a
+      ><a routerLink="/invitations" [queryParams]="{ org: selected() }">Invite teammates</a
+      ><a routerLink="/activity" [queryParams]="{ org: selected() }">Activity</a>
+    }
+    <div class="sidebar-bottom">
+      <span>{{ auth.identity()?.user?.display_name }}</span
+      ><small>{{ membership()?.role }}</small>
+    </div>
+  </aside>
+  <main class="workspace-main">
+    <header class="workspace-header">
+      <span class="eyebrow">MAKE TIME FOR LIFE</span>
+      @if (memberships().length > 1) {
+        <label
+          >Organization
+          <select [disabled]="busy()" (change)="changeOrganization($event)">
+            @for (org of memberships(); track org.org_id) {
+              <option [value]="org.org_id" [selected]="org.org_id === selected()">{{ org.name }}</option>
+            }
+          </select></label
+        >
+      } @else {
+        <span class="organization-name">{{ membership()?.name }}</span>
+      }
+    </header>
+    <p class="eyebrow greeting">A LITTLE ROOM IN THE WEEK</p>
+    <h1>Plan around your people<span class="accent">.</span></h1>
+    <p class="muted">Mark unavailable time or request leave. All times use {{ zone() }}.</p>
+    <nav class="staff-tabs" aria-label="Time off views">
+      <button [class.selected]="mode() === 'mine'" [disabled]="busy()" (click)="setMode('mine')">
+        My time
+      </button>
+      @if (isManager()) {
+        <button [class.selected]="mode() === 'team'" [disabled]="busy()" (click)="setMode('team')">
+          Team requests
+        </button>
+      }
+    </nav>
+    <section class="staff-editor" aria-labelledby="time-off-editor-title">
+      <h2 id="time-off-editor-title">
+        {{ mode() === 'team' ? 'Record time for a teammate' : 'Tell us when you need time' }}
+      </h2>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="time-off-fields">
+          @if (mode() === 'team' && isManager()) {
+            <label
+              >Team member<select
+                aria-label="Team member"
+                formControlName="employee_id"
+                [attr.aria-busy]="staffLoading()"
+              >
+                <option value="">My own staff record</option>
+                @for (employee of employees(); track employee.id) {
+                  <option [value]="employee.id">{{ employee.display_name }}</option>
+                }
+              </select></label
+            >
+          }
+          <label
+            >Type<select aria-label="Type" formControlName="kind">
+              <option value="leave">Leave request — needs approval</option>
+              <option value="unavailable">Unavailable — blocks assignments immediately</option>
+            </select></label
+          >
+          <label>Starts<input type="datetime-local" formControlName="starts_at" required /></label
+          ><label>Ends<input type="datetime-local" formControlName="ends_at" required /></label>
+          @if (ambiguous(form.controls.starts_at.value)) {
+            <label
+              >Start clock repeats<select formControlName="start_occurrence">
+                <option value="earlier">First occurrence</option>
+                <option value="later">Second occurrence</option>
+              </select></label
+            >
+          }
+          @if (ambiguous(form.controls.ends_at.value)) {
+            <label
+              >End clock repeats<select formControlName="end_occurrence">
+                <option value="earlier">First occurrence</option>
+                <option value="later">Second occurrence</option>
+              </select></label
+            >
+          }
+        </div>
+        <label class="time-off-reason"
+          >Reason (optional)<textarea
+            formControlName="reason"
+            rows="2"
+            maxlength="500"
+            placeholder="Only you and your managers can see this note."
+          ></textarea>
+        </label>
+        <p class="form-note">
+          Outside declared unavailable time, you can be scheduled as usual. Pending leave does not block
+          shifts. Unavailable time and approved leave cannot overlap an existing assignment.
+        </p>
+        @if (staffError() && mode() === 'team') {
+          <p class="error" role="alert">{{ staffError() }}</p>
+          <button type="button" class="secondary" (click)="loadStaff()">Retry staff list</button>
+        }
+        <button class="primary" type="submit" [disabled]="busy()">
+          {{
+            busy()
+              ? 'Saving…'
+              : form.controls.kind.value === 'leave'
+                ? 'Request leave'
+                : 'Save unavailable time'
+          }}
+        </button>
+      </form>
+    </section>
+    @if (notice()) {
+      <p class="success-note" role="status">{{ notice() }}</p>
+    }
+    @if (error() && !decision()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    @if (conflicts().length) {
+      <section class="time-off-conflicts" aria-labelledby="time-off-conflicts-title">
+        <h2 id="time-off-conflicts-title">These shifts need attention first</h2>
+        <ul>
+          @for (shift of conflicts(); track shift.id) {
+            <li>
+              <strong>{{ shift.location_name }}</strong> · {{ display(shift.starts_at) }} –
+              {{ display(shift.ends_at) }} · {{ shift.state }}
+              <a routerLink="/rosters" [queryParams]="{ org: selected(), week: shift.week_start }"
+                >View roster</a
+              >
+            </li>
+          }
+        </ul>
+        <p>Draft shifts can be reassigned or unassigned. Published schedules are frozen in this release.</p>
+      </section>
+    }
+    <form
+      class="roster-toolbar"
+      (submit)="filter($event, fromInput.value, throughInput.value, statusInput.value)"
+    >
+      <label>From<input #fromInput type="date" [value]="fromDate()" required /></label
+      ><label>Through<input #throughInput type="date" [value]="throughDate()" required /></label
+      ><label
+        >Status<select aria-label="Status" #statusInput [value]="status()">
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved / active</option>
+          <option value="rejected">Rejected</option>
+          <option value="cancelled">Cancelled</option>
+        </select></label
+      ><button class="secondary" [disabled]="busy() || loading()">Show requests</button>
+    </form>
+    <p class="form-note">Show up to three months at a time. The Through date is included.</p>
+    @if (loading()) {
+      <p class="directory-state" role="status">Loading time off…</p>
+    } @else if (!items().length && !error()) {
+      <section class="directory-state">
+        <h2>
+          {{
+            mode() === 'team' && status() === 'pending'
+              ? 'No leave requests waiting for review.'
+              : 'No time off in this range.'
+          }}
+        </h2>
+        <p>
+          {{
+            mode() === 'team'
+              ? 'Try another status or date range to see more requests.'
+              : 'Add unavailable time or request leave using the form above.'
+          }}
+        </p>
+      </section>
+    }
+    <div class="time-off-list">
+      @for (item of items(); track item.id) {
+        <article class="time-off-card">
+          <div class="time-off-heading">
+            <div>
+              <p class="eyebrow">{{ item.kind === 'leave' ? 'LEAVE REQUEST' : 'UNAVAILABLE TIME' }}</p>
+              <h2>{{ item.employee_name }}</h2>
+            </div>
+            <span
+              class="record-status"
+              [class.inactive]="item.status === 'rejected' || item.status === 'cancelled'"
+              >{{ item.status }}</span
+            >
+          </div>
+          <p>{{ display(item.starts_at) }}<br />to {{ display(item.ends_at) }}</p>
+          @if (item.reason) {
+            <p class="muted">{{ item.reason }}</p>
+          }
+          @if (item.decision_note) {
+            <p class="form-note">Decision note: {{ item.decision_note }}</p>
+          }
+          <div class="editor-actions">
+            @if (mode() === 'team' && isManager() && item.kind === 'leave' && item.status === 'pending') {
+              <button class="primary" [disabled]="busy()" (click)="choose(item, 'approve')">Approve</button
+              ><button class="secondary" [disabled]="busy()" (click)="choose(item, 'reject')">Reject</button>
+            }
+            @if (item.status === 'pending' || item.status === 'approved') {
+              <button class="secondary" [disabled]="busy()" (click)="choose(item, 'cancel')">
+                {{ item.kind === 'leave' ? 'Cancel request' : 'Remove unavailable time' }}
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+    @if (items().length) {
+      <div class="pagination">
+        <span>Showing {{ offset() + 1 }}–{{ offset() + items().length }}</span>
+        <div>
+          <button class="secondary" [disabled]="!offset() || busy() || loading()" (click)="paginate(-1)">
+            Previous</button
+          ><button class="secondary" [disabled]="!hasMore() || busy() || loading()" (click)="paginate(1)">
+            Next
+          </button>
+        </div>
+      </div>
+    }
+  </main>
+</div>
+<dialog
+  #decisionDialog
+  class="time-off-dialog"
+  aria-labelledby="decision-title"
+  (cancel)="$event.preventDefault(); closeDecision()"
+>
+  @if (decision(); as choice) {
+    <h2 id="decision-title">
+      {{ choice.action === 'approve' ? 'Approve' : choice.action === 'reject' ? 'Reject' : 'Cancel' }}
+      {{ choice.item.kind === 'leave' ? 'leave' : 'unavailable time' }} for {{ choice.item.employee_name }}?
+    </h2>
+    <p>{{ display(choice.item.starts_at) }} to {{ display(choice.item.ends_at) }}</p>
+    <p>
+      {{
+        choice.action === 'approve'
+          ? 'Approval will block overlapping assignments. Existing assignments must be resolved first.'
+          : choice.action === 'cancel'
+            ? 'This time will no longer block assignments. The change stays in the activity history.'
+            : 'This leave request will not block assignments.'
+      }}
+    </p>
+    <label
+      >Decision note (optional)<textarea
+        rows="2"
+        maxlength="500"
+        [value]="decisionNote()"
+        (input)="decisionNote.set($any($event.target).value)"
+      ></textarea>
+    </label>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <div class="editor-actions">
+      <button class="primary" [disabled]="busy()" (click)="confirm()">
+        {{ busy() ? 'Saving…' : 'Confirm ' + choice.action }}</button
+      ><button class="secondary" [disabled]="busy()" (click)="closeDecision()">Keep request</button>
+    </div>
+  }
+</dialog>

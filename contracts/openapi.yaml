@@ -1,11 +1,247 @@
 openapi: 3.0.3
 info:
   title: Tessera API
-  version: 0.6.0
+  version: 0.7.0
   description: Core roster system with verified team onboarding, invitations, identity, staff, scheduling, publication, personal shifts, archival, and activity. Browser requests use the frontend same-origin API proxy.
 servers:
   - url: http://localhost:8080
 paths:
+  /api/organizations/{orgID}/my-time-off:
+    get:
+      tags: [TimeOff]
+      operationId: listMyTimeOff
+      summary: Read your own availability and leave
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgID'
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time }, description: Exclusive end; range is at most 93 elapsed days }
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - { name: status, in: query, schema: { type: string, enum: [pending, approved, rejected, cancelled] } }
+      responses:
+        '200':
+          description: Time-off result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOffPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409':
+          description: Invalid transition or assigned shifts conflict with this time
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOffConflict' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [TimeOff]
+      operationId: createMyTimeOff
+      summary: Request leave or mark yourself unavailable; employee identity comes from the session
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgID'
+        - $ref: '#/components/parameters/BrowserRequest'
+        - { name: X-CSRF-Token, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TimeOffInput' }
+      responses:
+        '201':
+          description: Time-off result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOff' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409':
+          description: Invalid transition or assigned shifts conflict with this time
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOffConflict' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/time-off:
+    get:
+      tags: [TimeOff]
+      operationId: listTeamTimeOff
+      summary: Manager review of team availability and leave
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgID'
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time }, description: Exclusive end; range is at most 93 elapsed days }
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - { name: status, in: query, schema: { type: string, enum: [pending, approved, rejected, cancelled] } }
+        - { name: employee_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Time-off result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOffPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409':
+          description: Invalid transition or assigned shifts conflict with this time
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOffConflict' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/employees/{employeeID}/time-off:
+    post:
+      tags: [TimeOff]
+      operationId: createEmployeeTimeOff
+      summary: Manager creates time off for a staff record, including staff without a login
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgID'
+        - $ref: '#/components/parameters/BrowserRequest'
+        - { name: employeeID, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: X-CSRF-Token, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TimeOffInput' }
+      responses:
+        '201':
+          description: Time-off result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOff' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409':
+          description: Invalid transition or assigned shifts conflict with this time
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOffConflict' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/time-off/{id}/approve:
+    post:
+      tags: [TimeOff]
+      operationId: approveTimeOff
+      summary: Manager approves a pending leave request
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgID'
+        - $ref: '#/components/parameters/RecordID'
+        - $ref: '#/components/parameters/BrowserRequest'
+        - { name: X-CSRF-Token, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                note: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          description: Time-off result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOff' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409':
+          description: Invalid transition or assigned shifts conflict with this time
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOffConflict' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/time-off/{id}/reject:
+    post:
+      tags: [TimeOff]
+      operationId: rejectTimeOff
+      summary: Manager rejects a pending leave request
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgID'
+        - $ref: '#/components/parameters/RecordID'
+        - $ref: '#/components/parameters/BrowserRequest'
+        - { name: X-CSRF-Token, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                note: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          description: Time-off result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOff' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409':
+          description: Invalid transition or assigned shifts conflict with this time
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOffConflict' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/time-off/{id}/cancel:
+    post:
+      tags: [TimeOff]
+      operationId: cancelTimeOff
+      summary: Owner or manager cancels pending or approved time off
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrgID'
+        - $ref: '#/components/parameters/RecordID'
+        - $ref: '#/components/parameters/BrowserRequest'
+        - { name: X-CSRF-Token, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                note: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          description: Time-off result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOff' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409':
+          description: Invalid transition or assigned shifts conflict with this time
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeOffConflict' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
   /api/auth/signup:
     post:
       operationId: signupTeam
@@ -242,11 +478,13 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [employees, locations, job_roles]
+                required: [employees, locations, job_roles, rosters, published_rosters]
                 properties:
                   employees: { type: integer, format: int64 }
                   locations: { type: integer, format: int64 }
                   job_roles: { type: integer, format: int64 }
+                  rosters: { type: integer, format: int64 }
+                  published_rosters: { type: integer, format: int64 }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
@@ -942,6 +1180,57 @@ components:
                 type: array
                 items: { $ref: '#/components/schemas/ScheduleViolation' }
   schemas:
+    TimeOffInput:
+      type: object
+      additionalProperties: false
+      required: [kind, starts_at, ends_at]
+      properties:
+        kind: { type: string, enum: [unavailable, leave] }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time, description: Exclusive; after start and now; at most 366 elapsed days }
+        reason: { type: string, maxLength: 500 }
+    TimeOff:
+      type: object
+      required: [id, employee_id, employee_name, kind, status, starts_at, ends_at, reason, decision_note, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        employee_id: { type: string, format: uuid }
+        employee_name: { type: string }
+        kind: { type: string, enum: [unavailable, leave] }
+        status: { type: string, enum: [pending, approved, rejected, cancelled] }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        reason: { type: string }
+        decision_note: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    TimeOffPage:
+      type: object
+      required: [items, offset, limit, has_more]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/TimeOff' } }
+        offset: { type: integer }
+        limit: { type: integer }
+        has_more: { type: boolean }
+    TimeOffShiftConflict:
+      type: object
+      required: [id, roster_id, state, week_start, location_name, starts_at, ends_at]
+      properties:
+        id: { type: string, format: uuid }
+        roster_id: { type: string, format: uuid }
+        state: { type: string, enum: [draft, published, archived] }
+        week_start: { type: string, format: date }
+        location_name: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+    TimeOffConflict:
+      type: object
+      required: [code, message, request_id]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+        conflicting_shifts: { type: array, maxItems: 51, items: { $ref: '#/components/schemas/TimeOffShiftConflict' } }
     RosterLifecycleResult:
       type: object
       required: [detail, violations]

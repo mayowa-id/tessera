@@ -21,6 +21,7 @@ import (
 	"tessera/backend/internal/requestctx"
 	"tessera/backend/internal/roster"
 	"tessera/backend/internal/staff"
+	"tessera/backend/internal/timeoff"
 )
 
 // CI supplies TEST_DATABASE_URL. Each run owns an isolated schema, never application tables.
@@ -91,6 +92,7 @@ func TestPostgresIdentity(t *testing.T) {
 	staff.NewHandler(staff.NewPostgresStore(pool), handler.RequireManager, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
 	roster.NewHandler(roster.NewPostgresStore(pool), handler.RequireManager, handler.RequireMember, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
 	audit.NewHandler(pool, handler.RequireManager, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
+	timeoff.NewHandler(timeoff.NewPostgresStore(pool), handler.RequireMember, handler.RequireManager, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
 	w := request(router, "POST", "/api/auth/login", `{"email":"manager@tessera.local","password":"correct-password"}`, nil, "")
 	if w.Code != 200 {
 		t.Fatalf("database login: %d %s", w.Code, w.Body)
@@ -140,6 +142,7 @@ func TestPostgresIdentity(t *testing.T) {
 	exerciseStaffAdministration(t, ctx, pool, router, cookie, employeeLogin.Result().Cookies()[0], csrfToken(cookie.Value), orgID, foreignOrg, foreignRole)
 	exerciseDraftRosters(t, ctx, pool, router, cookie, employeeLogin.Result().Cookies()[0], csrfToken(cookie.Value), orgID, foreignOrg, foreignRole)
 	exercisePublication(t, ctx, pool, router, cookie, employeeLogin.Result().Cookies()[0], csrfToken(cookie.Value), orgID, foreignOrg)
+	exerciseTimeOff(t, ctx, pool, router, cookie, employeeLogin.Result().Cookies()[0], orgID, foreignOrg)
 	if _, err = pool.Exec(ctx, `UPDATE sessions SET expires_at=now()-interval '1 second' WHERE token_hash=$1`, tokenHash(cookie.Value)); err != nil {
 		t.Fatal(err)
 	}

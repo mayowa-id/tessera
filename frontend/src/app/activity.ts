@@ -7,7 +7,7 @@ import { AuthService, apiError } from './auth.service';
 import { ActivityService } from './api/services/activity.service';
 import { ActivityEvent } from './api/models';
 
-const labels: Record<string, string> = { 'roster.created': 'Draft roster created', 'roster.published': 'Roster published', 'roster.archived': 'Roster archived', 'shift.created': 'Shift added', 'shift.updated': 'Shift updated', 'shift.assigned': 'Employee assigned', 'shift.unassigned': 'Assignment removed', 'shift.deleted': 'Shift removed', 'employee.created': 'Team member added', 'employee.updated': 'Team member updated', 'location.created': 'Location added', 'location.updated': 'Location updated', 'job_role.created': 'Job role added', 'job_role.updated': 'Job role updated' };
+const labels: Record<string, string> = { 'leave.requested': 'Leave requested', 'leave.approved': 'Leave approved', 'leave.rejected': 'Leave rejected', 'leave.cancelled': 'Leave cancelled', 'availability.added': 'Unavailable time added', 'availability.cancelled': 'Unavailable time removed', 'roster.created': 'Draft roster created', 'roster.published': 'Roster published', 'roster.archived': 'Roster archived', 'shift.created': 'Shift added', 'shift.updated': 'Shift updated', 'shift.assigned': 'Employee assigned', 'shift.unassigned': 'Assignment removed', 'shift.deleted': 'Shift removed', 'employee.created': 'Team member added', 'employee.updated': 'Team member updated', 'location.created': 'Location added', 'location.updated': 'Location updated', 'job_role.created': 'Job role added', 'job_role.updated': 'Job role updated' };
 @Component({ selector: 'app-activity', imports: [RouterLink], templateUrl: './activity.html' })
 export class Activity {
   readonly auth = inject(AuthService);

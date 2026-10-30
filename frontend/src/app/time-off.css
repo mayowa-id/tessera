@@ -1,0 +1,113 @@
+.time-off-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.time-off-fields label,
+.time-off-reason,
+.time-off-dialog label {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+}
+.time-off-fields select {
+  max-width: 100%;
+  width: 100%;
+}
+.time-off-fields input,
+.time-off-reason textarea,
+.time-off-dialog textarea {
+  padding: 12px;
+  font: inherit;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-width: 0;
+}
+.time-off-reason {
+  margin-top: 20px;
+}
+.time-off-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.time-off-card {
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.time-off-card h2 {
+  font:
+    normal 26px Georgia,
+    serif;
+  margin: 10px 0;
+}
+.time-off-card p {
+  font-size: 13px;
+  line-height: 1.8;
+}
+.time-off-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+.time-off-heading .record-status {
+  text-transform: capitalize;
+  margin-top: 10px;
+}
+.time-off-conflicts {
+  padding: 24px;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.time-off-conflicts h2 {
+  font:
+    normal 24px Georgia,
+    serif;
+}
+.time-off-conflicts li {
+  margin: 12px 0;
+}
+.time-off-dialog {
+  width: min(520px, calc(100% - 32px));
+  padding: 28px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.time-off-dialog::backdrop {
+  background: rgba(8, 16, 12, 0.6);
+}
+.time-off-dialog h2 {
+  font:
+    normal 27px Georgia,
+    serif;
+}
+.time-off-dialog p {
+  font-size: 13px;
+  line-height: 1.8;
+}
+.time-off-card .editor-actions {
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .time-off-fields,
+  .time-off-list {
+    grid-template-columns: 1fr;
+  }
+  .time-off-card {
+    padding: 20px;
+  }
+  .time-off-dialog {
+    padding: 22px;
+  }
+}

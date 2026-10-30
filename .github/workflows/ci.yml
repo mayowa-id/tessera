@@ -122,4 +122,6 @@ jobs:
           name: publication-browser-diagnostics
           path: |
             .cache/publication-smoke.png
+            .cache/time-off-desktop.png
+            .cache/time-off-mobile.png
             .cache/publication-*.log

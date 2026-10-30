@@ -34,6 +34,6 @@ This proxy keeps browser requests on the frontend origin. Verify session cookies
 
 Future background work must use bounded scheduled invocations or a separate worker service rather than assuming an API process runs continuously.
 
-The user has deployed `tessera-ui.vercel.app` and `tessera-backend.vercel.app`. See [production onboarding](../docs/production-onboarding.md) for the Neon prefix, email configuration, migration 6, and release checks. These local changes have not been deployed from this workspace.
+The user has deployed `tessera-ui.vercel.app` and `tessera-backend.vercel.app`. See [production onboarding](../docs/production-onboarding.md) for the Neon prefix, email configuration, migration 7, and release checks. These local changes have not been deployed from this workspace.
 
 References: [Go preset and entry points](https://vercel.com/docs/functions/runtimes/go), [Angular on Vercel](https://vercel.com/docs/frameworks/frontend).
