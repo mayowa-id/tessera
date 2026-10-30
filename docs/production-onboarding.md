@@ -43,6 +43,8 @@ Use the direct URL only in this migration terminal; keep the pooled URL configur
 
 On WSL/Linux, run `bash scripts/migrate-neon.sh` from the repository root instead. It prompts for the Neon direct URL without displaying it or putting it in shell history, then shows migration status, applies pending migrations, and reports the resulting version. Keep TLS enabled in the URL. Do not paste the URL into chat.
 
+On Windows PowerShell, run `.\scripts\migrate-neon.ps1` from the repository root. This helper prompts privately, locates Go for Windows, sets the Goose variables for the whole run, and stops on a failed command. Goose help text or `exit status 1` is a failure, not confirmation that migrations ran. A successful upgrade ends at version 6.
+
 ## Account behavior
 
 Signup atomically creates an unverified owner, a separate organization, an admin membership, a first location, and a default Team member qualification. An organization name or matching email domain never grants access to an existing team. Email verification links expire after 24 hours; reset links after 30 minutes; invitations after 7 days. Tokens are stored only as hashes and consumed once. Link fragments keep secrets out of server URL logs. Clicking a link alone does not verify or accept anything: a form submission is required.
