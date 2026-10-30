@@ -32,6 +32,9 @@ try {
   await page.goto('/login'); await login('manager@tessera.local');
   await page.getByRole('link', { name: 'Rosters', exact: true }).click();
   const weekInput = page.getByLabel('Week beginning Monday');
+  // inputValue() can read the element before Angular applies its initial value.
+  // Wait for the bound ISO date rather than relying on machine/browser timing.
+  await page.waitForFunction(input => /^\d{4}-\d{2}-\d{2}$/.test(input.value), await weekInput.elementHandle());
   const current = await weekInput.inputValue();
   const next = new Date(current + 'T12:00:00Z'); next.setUTCDate(next.getUTCDate() + 7);
   const week = next.toISOString().slice(0, 10);
