@@ -6,6 +6,16 @@
   <meta name="description" content="Tessera shift roster and scheduling application.">
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // Apply appearance before styles load to avoid a flash of the other theme.
+    (() => {
+      let preference = 'system';
+      try { preference = localStorage.getItem('tessera-theme') || 'system'; } catch {}
+      document.documentElement.dataset.theme = preference === 'light' || preference === 'dark'
+        ? preference : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    })();
+  </script>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>

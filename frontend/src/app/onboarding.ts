@@ -15,7 +15,7 @@ import { apiError } from './auth.service';
  <button class="primary" [disabled]="busy()||complete()">{{busy()?'Please wait…':action}}</button></form>
  <p><a routerLink="/login">Sign in</a> · <a routerLink="/signup">Create a team</a></p><p><a routerLink="/resend">Request a verification email</a> · <a routerLink="/forgot-password">Reset password</a></p>
  </section></main>`,
- styles:[`.onboarding-page{max-width:760px;margin:auto;padding:36px 24px}.onboarding-card{max-width:520px;margin:56px auto}.onboarding-card h1{font:normal 42px Georgia,serif}.onboarding-card form,.onboarding-card label{display:grid;gap:10px}.onboarding-card form{gap:20px;margin:30px 0}.onboarding-card input{width:100%;padding:13px;border:1px solid #d6dbcf;border-radius:6px;background:#fffefa;color:#29483e;font-size:16px}.onboarding-card label,.onboarding-card p,.onboarding-card small{font-size:13px;line-height:1.7}.primary:disabled{opacity:.6}`],
+ styles:[`.onboarding-page{max-width:760px;margin:auto;padding:36px 24px}.onboarding-card{max-width:520px;margin:56px auto}.onboarding-card h1{font:normal 42px Georgia,serif}.onboarding-card form,.onboarding-card label{display:grid;gap:10px}.onboarding-card form{gap:20px;margin:30px 0}.onboarding-card input{width:100%;padding:13px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--heading);font-size:16px}.onboarding-card label,.onboarding-card p,.onboarding-card small{font-size:13px;line-height:1.7}.primary:disabled{opacity:.6}`],
 })
 export class Onboarding {
  private readonly http=inject(HttpClient);

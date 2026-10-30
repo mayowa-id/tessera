@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net"
 	"net/http"
 	"net/mail"
@@ -57,7 +58,8 @@ func (o *Onboarding) input(w http.ResponseWriter, r *http.Request, v any) bool {
 	if !o.auth.mutationAllowed(w, r) {
 		return false
 	}
-	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+	media, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if media != "application/json" {
 		o.auth.fail(w, r, 400, "INVALID_REQUEST", "Send JSON data.")
 		return false
 	}
@@ -67,7 +69,8 @@ func (o *Onboarding) input(w http.ResponseWriter, r *http.Request, v any) bool {
 		o.auth.fail(w, r, 400, "INVALID_REQUEST", "Check the submitted details.")
 		return false
 	}
-	return true
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	return o.limit(w, r, "requests:"+host+":"+r.URL.Path, 60)
 }
 func (o *Onboarding) ready(w http.ResponseWriter, r *http.Request) bool {
 	if o.mail == nil {
