@@ -10,7 +10,7 @@ if (!base || !['127.0.0.1', 'localhost'].includes(new URL(base).hostname)) throw
 if (!password) throw new Error('Supply the seeded development password through E2E_PASSWORD.');
 const screenshot = fileURLToPath(new URL('../../.cache/publication-smoke.png', import.meta.url));
 const browser = await chromium.launch({ channel: process.env.E2E_BROWSER_CHANNEL ?? 'msedge', headless: true, timeout: 120000 });
-const context = await browser.newContext({ baseURL: base, viewport: { width: 1365, height: 900 } });
+const context = await browser.newContext({ baseURL: base, viewport: { width: 1365, height: 900 }, colorScheme: 'dark' });
 const page = await context.newPage();
 page.setDefaultTimeout(45000); page.setDefaultNavigationTimeout(120000);
 const errors = [];
@@ -24,11 +24,24 @@ const login = async email => {
 try {
   await page.goto('/');
   await page.getByText('Illustrative sample', { exact: false }).waitFor();
-  await page.getByLabel('Appearance', { exact: true }).selectOption('dark');
+  assert.equal(await page.locator('html').getAttribute('data-theme'), 'light');
+  await page.getByRole('button', { name: 'Dark mode', exact: true }).click();
   await page.reload();
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
-  await page.getByLabel('Appearance', { exact: true }).selectOption('light');
+  await page.getByRole('button', { name: 'Light mode', exact: true }).click();
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'light');
+  await page.getByRole('button', { name: 'Rosters', exact: true }).click();
+  await page.getByRole('button', { name: 'View Alex Morgan Monday shift', exact: true }).click();
+  await page.getByRole('button', { name: 'Change assignment', exact: true }).click();
+  const signupPrompt = page.getByRole('dialog');
+  await signupPrompt.getByRole('button', { name: 'Keep exploring', exact: true }).click();
+  assert.equal(await signupPrompt.isVisible(), false);
+  await page.getByRole('button', { name: '+ Create roster', exact: true }).click();
+  await signupPrompt.getByRole('link', { name: 'Sign up & create a team', exact: true }).click();
+  await page.waitForURL('**/signup');
+  await page.getByRole('heading', { name: 'Create your account.', exact: true }).waitFor();
+  await page.getByLabel('Team name', { exact: true }).waitFor();
+  await page.goto('/workspace'); await page.waitForURL('**/demo');
   await page.goto('/login'); await login('manager@tessera.local');
   await page.getByRole('link', { name: 'Rosters', exact: true }).click();
   const weekInput = page.getByLabel('Week beginning Monday');

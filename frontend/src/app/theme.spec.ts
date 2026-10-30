@@ -24,15 +24,27 @@ describe('Appearance preferences', () => {
     vi.restoreAllMocks();
   });
 
-  it('follows device changes until a specific theme is selected', () => {
+  it('defaults to light even on a dark device, and follows the device only when selected', () => {
+    dark = true;
     const theme = TestBed.inject(ThemeService);
+    expect(theme.preference()).toBe('light');
+    expect(document.documentElement.dataset['theme']).toBe('light');
+    theme.setPreference('system');
+    expect(document.documentElement.dataset['theme']).toBe('dark');
+    dark = false; changed?.();
     expect(document.documentElement.dataset['theme']).toBe('light');
     dark = true; changed?.();
-    expect(document.documentElement.dataset['theme']).toBe('dark');
     theme.setPreference('light'); changed?.();
     expect(document.documentElement.dataset['theme']).toBe('light');
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
     theme.setPreference('system');
+    expect(document.documentElement.dataset['theme']).toBe('dark');
+  });
+
+  it('restores an explicitly saved device preference', () => {
+    dark = true;
+    localStorage.setItem(THEME_STORAGE_KEY, 'system');
+    expect(TestBed.inject(ThemeService).preference()).toBe('system');
     expect(document.documentElement.dataset['theme']).toBe('dark');
   });
 

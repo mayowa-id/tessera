@@ -5,8 +5,8 @@ import { RouterLink } from '@angular/router';
  selector: 'app-welcome', imports: [RouterLink],
  template: `
  <main class="welcome">
- <header><a class="wordmark" routerLink="/">tessera<span>.</span></a><nav><a routerLink="/login">Sign in</a><a class="primary" routerLink="/signup">Create your team</a></nav></header>
- <section class="welcome-intro"><p class="eyebrow">EVERY SHIFT IN ITS PLACE</p><h1>A good week starts<br>with a <em>plan.</em></h1><p>A shared space for your people, their time, and the work ahead.</p><a class="primary" routerLink="/signup">Start planning together ↗</a><a class="text-link" href="#sample">Explore a sample week ↓</a></section>
+ <header><a class="wordmark" routerLink="/">tessera<span>.</span></a><nav><a routerLink="/login">Sign in</a><a class="primary" routerLink="/signup">Sign up</a></nav></header>
+ <section class="welcome-intro"><p class="eyebrow">EVERY SHIFT IN ITS PLACE</p><h1>A good week starts<br>with a <em>plan.</em></h1><p>A shared space for your people, their time, and the work ahead.</p><a class="primary" routerLink="/demo">Explore the app ↗</a><a class="text-link" href="#sample">Explore a sample week ↓</a></section>
  <section id="sample" aria-labelledby="sample-title"><div class="directory-heading"><div><p class="eyebrow">A LITTLE LOOK AHEAD</p><h2 id="sample-title">Your week, at a glance.</h2><p class="muted">Illustrative sample · Main site · No real team data</p></div><a class="primary" routerLink="/signup">Build your own roster</a></div>
  <div class="table-scroll"><table class="directory-table"><caption>Sample roster — Monday to Friday</caption><thead><tr><th>Team member</th><th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th></tr></thead><tbody>
  <tr><th>Alex Morgan</th><td>09:00–17:00</td><td>09:00–17:00</td><td>Off</td><td>09:00–17:00</td><td>09:00–17:00</td></tr>

@@ -1,0 +1,38 @@
+<div class="workspace demo-workspace">
+  <aside class="sidebar">
+    <a class="wordmark" routerLink="/">tessera<span>.</span></a><p class="eyebrow">TAKE A LOOK AROUND</p>
+    <nav aria-label="Sample workspace">
+      <button type="button" [class.nav-current]="view() === 'overview'" [attr.aria-pressed]="view() === 'overview'" (click)="view.set('overview')">Overview</button>
+      <button type="button" [class.nav-current]="view() === 'rosters'" [attr.aria-pressed]="view() === 'rosters'" (click)="view.set('rosters')">Rosters</button>
+      <button type="button" [class.nav-current]="view() === 'team'" [attr.aria-pressed]="view() === 'team'" (click)="view.set('team')">Team & locations</button>
+    </nav>
+    <div class="sidebar-bottom"><span>Make room for your team.</span><a class="primary" routerLink="/signup">Sign up</a><a class="text-link" routerLink="/login">Already a member? Sign in</a></div>
+  </aside>
+  <main class="workspace-main">
+    <header class="workspace-header"><span class="eyebrow">YOUR NEXT GOOD WEEK</span><nav aria-label="Account"><a routerLink="/login">Sign in</a><a class="primary" routerLink="/signup">Sign up</a></nav></header>
+    <div class="demo-banner"><span class="sample-badge">PREVIEW</span><p>Illustrative sample · Explore freely. Sign up when you’re ready to create your own team.</p></div>
+    @if (view() === 'overview') {
+      <p class="eyebrow greeting">EVERY SHIFT IN ITS PLACE</p><h1>A little clarity for the week<span class="accent">.</span></h1><p class="muted">Meet your sample workspace. Browse the roster, explore the team, and see how it fits together.</p>
+      <div class="stat-grid"><section class="stat"><span>Team members</span><strong>3</strong></section><section class="stat"><span>Planned shifts</span><strong>10</strong></section><section class="stat"><span>Scheduled hours</span><strong>80</strong></section></div>
+      <section class="workspace-card"><p class="eyebrow">A WEEK WITH ROOM TO BREATHE</p><h2>Your people. A shared plan.</h2><p>See who’s working and when, keep qualifications in view, and give everyone a clearer week.</p><div class="demo-actions"><button class="primary" (click)="view.set('rosters')">Explore sample roster ↗</button><button class="secondary" (click)="view.set('team')">Meet the sample team</button></div></section>
+      <section class="demo-start"><div><h2>Ready to make it yours?</h2><p class="muted">Create a team, add your first location, and bring your people along.</p></div><button class="primary" (click)="requireAccount('create your own team')">Create my team</button></section>
+    }
+    @if (view() === 'rosters') {
+      <p class="eyebrow greeting">THE WEEK AHEAD</p><h1>A plan for everyone<span class="accent">.</span></h1><p class="muted">Sample roster · Main site · Africa/Lagos</p>
+      <div class="demo-roster-toolbar"><div class="week-navigation"><button class="secondary" aria-label="Previous sample week" (click)="changeWeek(-1)">←</button><span>Week of {{ weekLabel() }}</span><button class="secondary" aria-label="Next sample week" (click)="changeWeek(1)">→</button></div><button class="primary" (click)="requireAccount('create your own roster')">+ Create roster</button></div>
+      <div class="table-scroll"><table class="directory-table sample-table"><caption>Illustrative sample roster — Monday to Friday</caption><thead><tr><th>Team member</th>@for (day of days; track day) { <th>{{ day }}</th> }</tr></thead><tbody>@for (person of people; track person.name) { <tr><th>{{ person.name }}<small>{{ person.role }}</small></th>@for (hours of person.days; track $index; let index = $index) { <td>@if (hours) { <button class="sample-shift" [attr.aria-label]="'View ' + person.name + ' ' + days[index] + ' shift'" (click)="selectedShift.set({ name: person.name, day: days[index], hours })">{{ hours }}<small>Main site</small></button> } @else { <span class="day-off">Off</span> }</td> }</tr> }</tbody></table></div>
+      @if (selectedShift(); as shift) { <section class="workspace-card shift-preview"><div><p class="eyebrow">SAMPLE SHIFT</p><h2>{{ shift.name }}</h2><p>{{ shift.day }} · {{ shift.hours }} · Main site</p></div><button class="secondary" (click)="requireAccount('assign shifts to your team')">Change assignment</button><button class="text-link close-details" aria-label="Close shift details" (click)="selectedShift.set(null)">Close</button></section> }
+      <p class="form-note">Select a shift to explore its details. Create an account to build and save a roster for your own people.</p>
+    }
+    @if (view() === 'team') {
+      <p class="eyebrow greeting">BETTER TOGETHER</p><h1>People make the plan<span class="accent">.</span></h1><p class="muted">Meet the sample team. Your own workspace starts with the people you invite.</p>
+      <div class="demo-roster-toolbar"><label class="demo-search">Find a sample teammate<input type="search" [value]="search()" (input)="search.set($any($event.target).value)" placeholder="Search by name"></label><button class="primary" (click)="requireAccount('invite your teammates')">+ Invite teammates</button></div>
+      <div class="table-scroll"><table class="directory-table"><thead><tr><th>Name</th><th>Qualification</th><th>Sample hours</th></tr></thead><tbody>@for (person of filteredPeople(); track person.name) { <tr><th><span class="sample-avatar" aria-hidden="true">{{ person.initials }}</span>{{ person.name }}</th><td>{{ person.role }}</td><td>{{ person.hours }} hours</td></tr> } @empty { <tr><td colspan="3">No sample teammates match this name.</td></tr> }</tbody></table></div>
+      <section class="workspace-card"><p class="eyebrow">LOCATION</p><h2>Main site</h2><p>The sample team’s shared location, in the Africa/Lagos timezone.</p><button class="secondary" (click)="requireAccount('add your own locations')">Add a location</button></section>
+    }
+    <footer class="demo-footer"><a routerLink="/about">About Tessera</a><span>Built thoughtfully, one shift at a time.</span></footer>
+  </main>
+</div>
+<dialog #signupDialog aria-labelledby="signup-prompt-title" aria-describedby="signup-prompt-description" class="signup-prompt">
+  <p class="eyebrow">MAKE IT YOURS</p><h2 id="signup-prompt-title">A place for your own team.</h2><p id="signup-prompt-description">Sign up to {{ action() }}. Start with your own people, locations, and shifts.</p><a class="primary" routerLink="/signup">Sign up & create a team</a><a class="text-link" routerLink="/login">Already have an account? Sign in</a><button class="secondary" (click)="closePrompt()">Keep exploring</button>
+</dialog>

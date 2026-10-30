@@ -6,6 +6,8 @@ Current stage: the core roster workflow is implemented. Managers can manage staf
 
 Public browsing and team onboarding are available: explore the illustrative roster without signing in, create a team, verify the owner's email, then invite teammates. Email delivery uses Resend. See [production onboarding](docs/production-onboarding.md) for the deployed URLs, backend secrets, migration 6, and release checks.
 
+The home page opens a guest workspace with sample rosters and people. Visitors can browse weeks, inspect shifts, and search the sample team; creating rosters, assigning real teammates, and inviting people prompt for signup. The public preview uses local illustrative data. Light mode is the default, with emoji buttons for light, dark, and the device preference; explicit choices are saved in the browser.
+
 The two primary application folders are `frontend/` (Angular) and `backend/` (Go). Each is independently deployable as its own Vercel project. Root-level documentation, contracts, and development infrastructure are shared.
 
 ## Development

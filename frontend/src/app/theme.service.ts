@@ -28,9 +28,9 @@ export class ThemeService {
   private readPreference(): ThemePreference {
     try {
       const value = this.window?.localStorage.getItem(THEME_STORAGE_KEY);
-      if (value === 'light' || value === 'dark') return value;
-    } catch { /* Use the device preference when storage is unavailable. */ }
-    return 'system';
+      if (value === 'light' || value === 'dark' || value === 'system') return value;
+    } catch { /* Keep the light default when storage is unavailable. */ }
+    return 'light';
   }
 
   private apply(): void {
