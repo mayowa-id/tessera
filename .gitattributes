@@ -2,3 +2,4 @@
 *.go text eol=lf
 # Migrations and sqlc queries are shared between Windows and WSL.
 *.sql text eol=lf
+*.sh text eol=lf
