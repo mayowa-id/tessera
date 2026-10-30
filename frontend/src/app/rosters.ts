@@ -46,6 +46,8 @@ export class Rosters {
   readonly editorOpen = signal(false);
   readonly editing = signal<Shift | null>(null);
   readonly deleting = signal<Shift | null>(null);
+  readonly lifecycleAction = signal<'publish' | 'archive' | null>(null);
+  readonly readyToPublish = computed(() => this.detail()?.roster.state === 'draft' && !!this.detail()?.shifts.length && this.detail()!.shifts.every(shift => !!shift.employee_id));
   readonly form = inject(FormBuilder).nonNullable.group({ role: ['', Validators.required], start: ['', Validators.required], end: ['', Validators.required], startOccurrence: ['earlier'], endOccurrence: ['earlier'] });
   private contextVersion = 0;
   private listVersion = 0;
@@ -59,7 +61,7 @@ export class Rosters {
     void this.router.navigate([], { relativeTo: this.route, queryParams: { org: this.selected() }, replaceUrl: true });
   }
   changeWeek(value: string): void { this.week.set(value); this.resetContext(); this.loadRosters(); }
-  private resetContext(): void { this.detailVersion++; this.detail.set(null); this.detailLoading.set(false); this.editorOpen.set(false); this.deleting.set(null); this.offset.set(0); this.clearFeedback(); }
+  private resetContext(): void { this.detailVersion++; this.detail.set(null); this.detailLoading.set(false); this.editorOpen.set(false); this.deleting.set(null); this.lifecycleAction.set(null); this.offset.set(0); this.clearFeedback(); }
   private clearFeedback(): void { this.error.set(''); this.notice.set(''); this.violations.set([]); }
   private validWeek(): boolean { const day = new Date(this.week() + 'T12:00:00Z'); return /^\d{4}-\d{2}-\d{2}$/.test(this.week()) && Number.isFinite(day.getTime()) && day.getUTCDay() === 1; }
   loadLookups(): void {
@@ -95,6 +97,7 @@ export class Rosters {
   }
   openRoster(roster: Roster): void {
     this.clearFeedback();
+    this.lifecycleAction.set(null);
     const version = ++this.detailVersion;
     this.detail.set(null); this.editorOpen.set(false); this.deleting.set(null); this.detailLoading.set(true);
     this.api.getRoster({ orgID: this.selected(), rosterID: roster.id }).pipe(timeout(15000), takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -103,6 +106,22 @@ export class Rosters {
     });
   }
   displayTime(value: string): string { return new Intl.DateTimeFormat('en-GB', { timeZone: this.zone(), weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(value)); }
+  violationOwner(violation: ScheduleViolation): string { const person = this.employees().find(person => person.id === violation.employee_id); return person ? person.display_name + ': ' : ''; }
+  archiveReady(): boolean {
+    const detail = this.detail(); if (!detail || detail.roster.state !== 'published') return false;
+    const endDate = new Date(detail.roster.week_start + 'T12:00:00Z'); endDate.setUTCDate(endDate.getUTCDate() + 7);
+    try { const end = Date.parse(localInstant(endDate.toISOString().slice(0, 10) + 'T00:00', detail.roster.timezone, 'later')); return Date.now() >= Math.max(end, ...detail.shifts.map(shift => Date.parse(shift.ends_at))); } catch { return false; }
+  }
+  transition(): void {
+    const detail = this.detail(), action = this.lifecycleAction(); if (!detail || !action || this.busy()) return;
+    this.busy.set(true); this.clearFeedback();
+    const params = { orgID: this.selected(), rosterID: detail.roster.id };
+    const request = action === 'publish' ? this.api.publishRoster(params) : this.api.archiveRoster(params);
+    request.pipe(timeout(15000), takeUntilDestroyed(this.destroyRef), finalize(() => this.busy.set(false))).subscribe({
+      next: result => { this.detail.set(result.detail); this.rosters.update(rosters => rosters.map(roster => roster.id === result.detail.roster.id ? result.detail.roster : roster)); this.violations.set(result.violations); this.lifecycleAction.set(null); this.editorOpen.set(false); this.deleting.set(null); this.notice.set(action === 'publish' ? 'Roster published. Employees can now see their assigned shifts.' : 'Roster archived. Published history is retained.'); },
+      error: error => this.handleError(error),
+    });
+  }
   candidates(value: string): string[] { try { return timeCandidates(value, this.zone()); } catch { return []; } }
   eligible(shift: Shift): Employee[] { return this.employees().filter(person => person.id === shift.employee_id || person.active && person.job_role_ids.includes(shift.job_role_id)); }
   openEditor(shift: Shift | null = null): void {

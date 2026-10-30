@@ -5,10 +5,19 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"tessera/backend/internal/requestctx"
 )
 
 // RequireManager applies the same tenant, role, and CSRF policy to every staff route.
 func (h *Handler) RequireManager(next http.Handler) http.Handler {
+	return h.requireMembership(next, true)
+}
+
+func (h *Handler) RequireMember(next http.Handler) http.Handler {
+	return h.requireMembership(next, false)
+}
+
+func (h *Handler) requireMembership(next http.Handler, managerOnly bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		user, token, ok := h.identity(w, r)
@@ -31,7 +40,7 @@ func (h *Handler) RequireManager(next http.Handler) http.Handler {
 			h.fail(w, r, 404, "NOT_FOUND", "Organization not found.")
 			return
 		}
-		if role != "manager" && role != "admin" {
+		if managerOnly && role != "manager" && role != "admin" {
 			h.fail(w, r, 403, "FORBIDDEN", "Manager access is required.")
 			return
 		}
@@ -44,6 +53,6 @@ func (h *Handler) RequireManager(next http.Handler) http.Handler {
 				return
 			}
 		}
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(requestctx.WithUser(r.Context(), user.ID)))
 	})
 }

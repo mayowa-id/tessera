@@ -2,7 +2,7 @@
 
 Build a shift roster application to learn the complete process of delivering a Go API and Angular frontend in one repository. Work through runnable milestones; the original six-to-eight-week estimate is a rough guide, not a deadline.
 
-Current progress: foundation, identity, staff administration, draft rosters, and safe assignments are implemented. Real PostgreSQL tests cover concurrent overlap and aggregate-limit attempts, interval triggers, rollback, qualifications, overnight/cross-week rules, and tenant isolation. Angular has 23 passing tests, including DST conversion and roster workflows. Windows can repeat database tests with `scripts/test-backend-postgres.ps1 -CheckMigrations`. Publishing, employee views, and audit events are next.
+Current progress: the core release is implemented through publication, employee personal schedules, archival, and transactional staff/roster audit events. PostgreSQL integration tests cover scheduling/publication races, privacy, rollback, and append-only history. Angular has 30 passing tests, and the complete manager-to-employee workflow passed in headless Edge. Windows can repeat everything with `scripts/test-backend-postgres.ps1 -BrowserSmoke`; CI runs Chromium. Availability and leave are next.
 
 ## 1. Scope and decisions
 
@@ -160,7 +160,7 @@ Prove separately that concurrent overlapping assignments cannot both succeed and
 
 For each milestone: explain the concept, implement one small vertical slice, run its checks, demonstrate it, and record the design tradeoff. Keep a short README with actual setup commands and an architecture diagram as the repository develops. Complete the core release before chasing the original plan's polish features.
 
-Immediate next task: Milestone 4. Publish fully validated rosters, expose employees' own published shifts, add audit events, and test publication versus concurrent assignment.
+Immediate next task: Milestone 5. Add dated availability, leave requests and approvals, and integrate them with assignment/publication validation and the shared concurrency protocol.
 
 ## References
 

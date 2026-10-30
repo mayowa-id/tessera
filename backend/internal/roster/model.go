@@ -8,10 +8,12 @@ import (
 )
 
 var (
-	ErrNotFound  = errors.New("record not found")
-	ErrDuplicate = errors.New("roster already exists")
-	ErrDraft     = errors.New("only draft rosters can change")
-	ErrInvalid   = errors.New("invalid roster or shift")
+	ErrNotFound   = errors.New("record not found")
+	ErrDuplicate  = errors.New("roster already exists")
+	ErrDraft      = errors.New("only draft rosters can change")
+	ErrInvalid    = errors.New("invalid roster or shift")
+	ErrTransition = errors.New("invalid roster state transition")
+	ErrNotEnded   = errors.New("roster has not ended")
 )
 
 type Conflict struct{ Violations []scheduling.Violation }
@@ -51,9 +53,25 @@ type Command struct {
 	Action, ShiftID, EmployeeID string
 	Input                       ShiftInput
 }
+type LifecycleResult struct {
+	Detail     Detail                 `json:"detail"`
+	Violations []scheduling.Violation `json:"violations"`
+}
+type MyShift struct {
+	ID           string    `json:"id"`
+	RosterID     string    `json:"roster_id"`
+	LocationName string    `json:"location_name"`
+	JobRoleName  string    `json:"job_role_name"`
+	StartsAt     time.Time `json:"starts_at"`
+	EndsAt       time.Time `json:"ends_at"`
+	Timezone     string    `json:"timezone"`
+	State        string    `json:"state"`
+}
 type Store interface {
 	List(context.Context, string, string, int32, int32) ([]Roster, error)
 	Create(context.Context, string, string, string) (Roster, error)
 	Get(context.Context, string, string) (Detail, error)
 	Change(context.Context, string, string, Command) (Result, error)
+	Transition(context.Context, string, string, string) (LifecycleResult, error)
+	MyShifts(context.Context, string, string, time.Time, time.Time, int32, int32) ([]MyShift, error)
 }

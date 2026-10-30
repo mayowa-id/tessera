@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Tessera API
-  version: 0.5.0
-  description: Foundation, identity, staff administration, and draft rosters with scheduling checks. Browser requests use the frontend same-origin API proxy.
+  version: 0.6.0
+  description: Core roster system with verified team onboarding, invitations, identity, staff, scheduling, publication, personal shifts, archival, and activity. Browser requests use the frontend same-origin API proxy.
 servers:
   - url: http://localhost:8080
 paths:
@@ -738,6 +738,109 @@ paths:
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/rosters/{rosterID}/publish:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+      - $ref: '#/components/parameters/RosterID'
+    post:
+      tags: [Rosters]
+      operationId: publishRoster
+      summary: Validate and publish a fully assigned draft
+      description: Revalidates every assignment under the scheduling transaction lock. Empty rosters, unassigned shifts, and hard violations block publication. Warnings are returned on success.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RosterLifecycleResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/rosters/{rosterID}/archive:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+      - $ref: '#/components/parameters/RosterID'
+    post:
+      tags: [Rosters]
+      operationId: archiveRoster
+      summary: Archive an ended published roster
+      description: Requires the local roster week and all shifts, including overnight spillovers, to have ended.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RosterLifecycleResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/my-shifts:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+    get:
+      tags: [Schedules]
+      operationId: getMyShifts
+      summary: Read only the authenticated user's published assignments and archived history
+      description: Employee identity is resolved from the session. A from/to instant range of at most 62 elapsed days is required. Draft rosters never appear.
+      security: [{ session: [] }]
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          required: true
+          schema: { type: string, format: date-time }
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyShiftPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/activity:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+    get:
+      tags: [Activity]
+      operationId: listActivity
+      summary: Read the organization's append-only activity feed (manager/admin)
+      security: [{ session: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActivityPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
 components:
   requestBodies:
     AccountEmail:
@@ -839,6 +942,60 @@ components:
                 type: array
                 items: { $ref: '#/components/schemas/ScheduleViolation' }
   schemas:
+    RosterLifecycleResult:
+      type: object
+      required: [detail, violations]
+      properties:
+        detail: { $ref: '#/components/schemas/RosterDetail' }
+        violations:
+          type: array
+          items: { $ref: '#/components/schemas/ScheduleViolation' }
+    MyShift:
+      type: object
+      required: [id, roster_id, location_name, job_role_name, starts_at, ends_at, timezone, state]
+      properties:
+        id: { type: string, format: uuid }
+        roster_id: { type: string, format: uuid }
+        location_name: { type: string }
+        job_role_name: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        timezone: { type: string }
+        state: { type: string, enum: [published, archived] }
+    MyShiftPage:
+      type: object
+      required: [items, offset, limit, has_more]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/MyShift' }
+        offset: { type: integer }
+        limit: { type: integer }
+        has_more: { type: boolean }
+    ActivityEvent:
+      type: object
+      required: [id, action, entity_type, entity_id, entity_label, actor_user_id, actor_name, created_at, before, after]
+      properties:
+        id: { type: string, format: uuid }
+        action: { type: string }
+        entity_type: { type: string }
+        entity_id: { type: string, format: uuid }
+        entity_label: { type: string }
+        actor_user_id: { type: string, format: uuid }
+        actor_name: { type: string }
+        created_at: { type: string, format: date-time }
+        before: { type: object, nullable: true, additionalProperties: true }
+        after: { type: object, nullable: true, additionalProperties: true }
+    ActivityPage:
+      type: object
+      required: [items, offset, limit, has_more]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ActivityEvent' }
+        offset: { type: integer }
+        limit: { type: integer }
+        has_more: { type: boolean }
     Roster:
       type: object
       required: [id, location_id, location_name, week_start, timezone, state]
@@ -900,6 +1057,8 @@ components:
         severity: { type: string, enum: [hard, warning] }
         message: { type: string }
         related_shift_id: { type: string, format: uuid }
+        employee_id: { type: string, format: uuid }
+        shift_id: { type: string, format: uuid }
         week_start: { type: string, format: date }
     ShiftResult:
       type: object

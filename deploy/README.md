@@ -30,10 +30,10 @@ The committed `frontend/vercel.json` targets `https://tessera-backend.vercel.app
 
 Preserve the existing framework, install, build, and output settings. Do not deploy the placeholder hostname. Keep the API rewrite before the SPA fallback. Angular's local proxy is not used in production.
 
-This proxy keeps browser requests on the frontend origin. When authentication is added, verify cookies and CSRF through that origin. If backend deployment protection is enabled, configure permitted server-to-server access; a protected backend will otherwise block the frontend proxy. Keep preview deployments paired with a non-production database and the intended backend.
+This proxy keeps browser requests on the frontend origin. Verify session cookies, origin forwarding, and CSRF through that production origin before release; the complete flow is tested locally through Angular's proxy. If backend deployment protection is enabled, configure permitted server-to-server access; a protected backend will otherwise block the frontend proxy. Keep preview deployments paired with a non-production database and the intended backend.
 
 Future background work must use bounded scheduled invocations or a separate worker service rather than assuming an API process runs continuously.
 
-The user has deployed `tessera-ui.vercel.app` and `tessera-backend.vercel.app`. See [production onboarding](../docs/production-onboarding.md) for the Neon prefix, email configuration, migration 5, and release checks. These local changes have not been deployed from this workspace.
+The user has deployed `tessera-ui.vercel.app` and `tessera-backend.vercel.app`. See [production onboarding](../docs/production-onboarding.md) for the Neon prefix, email configuration, migration 6, and release checks. These local changes have not been deployed from this workspace.
 
 References: [Go preset and entry points](https://vercel.com/docs/functions/runtimes/go), [Angular on Vercel](https://vercel.com/docs/frameworks/frontend).

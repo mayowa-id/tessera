@@ -16,6 +16,8 @@ The API allows no cross-origin credential requests. The intended ingress is a sa
 - Throttling: ten login attempts per normalized email per fixed 15-minute window, including successful attempts. Atomic PostgreSQL upserts serialize increments across Vercel instances. This is an account-level limit; add ingress/IP abuse protection before exposing a public demo to arbitrary traffic.
 - Cookies: host-only, HttpOnly, `/api`, SameSite=Lax, Secure by default. Insecure cookies are permitted only for localhost origins. Production configuration requires HTTPS.
 - Authorization: each organization request loads current memberships. The manager summary permits admin/manager and rejects employee access. An unknown/nonmember organization is indistinguishable from a nonexistent one.
+- Staff, roster lifecycle, and activity endpoints require manager/admin access. Personal schedules accept organization members, but derive the employee identity from the authenticated user and exclude draft rosters. Submitted employee/user identifiers never change that scope.
+- The shared authorization layer places the validated user ID in the request context. Business audit events use that identity; actor IDs are never accepted from JSON or headers. Authenticated mutations require origin, custom request header, and session-bound CSRF validation.
 - Revocation: logout, reauthentication of the current browser, and reseeding of development users. Expired database sessions are never accepted. There is no password reset or public registration yet.
 - Cleanup: expired session and login-limit rows are inert but retained. Before production, add a scheduled bounded cleanup of expired rows; throttling keys reset their window on the next attempt.
 

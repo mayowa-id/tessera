@@ -59,3 +59,67 @@ jobs:
       - run: git diff --exit-code -- src/app/api
       - run: npm test -- --watch=false
       - run: npm run build
+  publication-browser:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: tessera
+          POSTGRES_PASSWORD: tessera_local
+          POSTGRES_DB: tessera
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tessera -d tessera"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://tessera:tessera_local@localhost:5432/tessera?sslmode=disable
+      HTTP_ADDR: 127.0.0.1:8080
+      APP_ORIGIN: http://127.0.0.1:4200
+      SESSION_COOKIE_SECURE: 'false'
+      TESSERA_ALLOW_DEMO_SEED: 'true'
+      DEMO_PASSWORD: ci-only-publication-password
+      E2E_PASSWORD: ci-only-publication-password
+      E2E_BASE_URL: http://127.0.0.1:4200
+      E2E_BROWSER_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm install --global npm@11.6.2
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright-core install --with-deps chromium
+        working-directory: frontend
+      - run: mkdir -p .cache
+      - run: go run github.com/pressly/goose/v3/cmd/goose@v3.24.3 -dir db/migrations postgres "$DATABASE_URL" up
+        working-directory: backend
+      - run: go run ./cmd/seed
+        working-directory: backend
+      - run: go build -o ../.cache/publication-api ./cmd/api
+        working-directory: backend
+      - name: Manager-to-employee publication smoke
+        run: |
+          ./.cache/publication-api > .cache/publication-api.log 2>&1 &
+          api_pid=$!
+          npm --prefix frontend start -- --host 127.0.0.1 --port 4200 > .cache/publication-web.log 2>&1 &
+          web_pid=$!
+          trap 'kill "$api_pid" "$web_pid"' EXIT
+          curl --retry 40 --retry-connrefused --retry-delay 1 --fail http://127.0.0.1:8080/api/readyz
+          curl --retry 60 --retry-connrefused --retry-delay 1 --fail http://127.0.0.1:4200/ > /dev/null
+          npm --prefix frontend run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: publication-browser-diagnostics
+          path: |
+            .cache/publication-smoke.png
+            .cache/publication-*.log
