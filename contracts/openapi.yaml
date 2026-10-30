@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Tessera API
-  version: 0.3.0
-  description: Foundation, session authentication, organization access, and staff administration. Browser requests use the frontend same-origin API proxy.
+  version: 0.4.0
+  description: Foundation, identity, staff administration, and draft rosters with scheduling checks. Browser requests use the frontend same-origin API proxy.
 servers:
   - url: http://localhost:8080
 paths:
@@ -435,6 +435,205 @@ paths:
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/rosters:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+    get:
+      tags: [Rosters]
+      operationId: listRosters
+      summary: List rosters for one local Monday-based week
+      security: [{ session: [] }]
+      parameters:
+        - in: query
+          name: week_start
+          required: true
+          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RosterPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Rosters]
+      operationId: createDraftRoster
+      summary: Create one draft roster per active location and local week
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [location_id, week_start]
+              additionalProperties: false
+              properties:
+                location_id: { type: string, format: uuid }
+                week_start: { type: string, format: date }
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Roster' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/rosters/{rosterID}:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+      - $ref: '#/components/parameters/RosterID'
+    get:
+      tags: [Rosters]
+      operationId: getRoster
+      summary: Read a manager-visible roster and its shifts
+      security: [{ session: [] }]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RosterDetail' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/rosters/{rosterID}/shifts:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+      - $ref: '#/components/parameters/RosterID'
+    post:
+      tags: [Rosters]
+      operationId: createShift
+      summary: createShift on a draft roster
+      description: Manager-only, CSRF-protected. Assigned shift edits re-run scheduling rules. Violations with severity hard return 409; warnings are included in successful responses.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShiftInput' }
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShiftResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/rosters/{rosterID}/shifts/{id}:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+      - $ref: '#/components/parameters/RosterID'
+      - $ref: '#/components/parameters/RecordID'
+    put:
+      tags: [Rosters]
+      operationId: updateShift
+      summary: updateShift on a draft roster
+      description: Manager-only, CSRF-protected. Assigned shift edits re-run scheduling rules. Violations with severity hard return 409; warnings are included in successful responses.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShiftInput' }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShiftResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Rosters]
+      operationId: deleteShift
+      summary: deleteShift on a draft roster
+      description: Manager-only, CSRF-protected. Assigned shift edits re-run scheduling rules. Violations with severity hard return 409; warnings are included in successful responses.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      responses:
+        '204': { description: Shift deleted }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/organizations/{orgID}/rosters/{rosterID}/shifts/{id}/assignment:
+    parameters:
+      - $ref: '#/components/parameters/OrgID'
+      - $ref: '#/components/parameters/RosterID'
+      - $ref: '#/components/parameters/RecordID'
+    put:
+      tags: [Rosters]
+      operationId: assignShift
+      summary: assignShift on a draft roster
+      description: Manager-only, CSRF-protected. Assigned shift edits re-run scheduling rules. Violations with severity hard return 409; warnings are included in successful responses.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignmentInput' }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShiftResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Rosters]
+      operationId: unassignShift
+      summary: unassignShift on a draft roster
+      description: Manager-only, CSRF-protected. Assigned shift edits re-run scheduling rules. Violations with severity hard return 409; warnings are included in successful responses.
+      security: [{ session: [], csrf: [], browserRequest: [] }]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShiftResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
 components:
   securitySchemes:
     csrf:
@@ -450,6 +649,11 @@ components:
       in: cookie
       name: tessera_session
   parameters:
+    RosterID:
+      in: path
+      name: rosterID
+      required: true
+      schema: { type: string, format: uuid }
     OrgID:
       in: path
       name: orgID
@@ -493,7 +697,80 @@ components:
               code: { type: string }
               message: { type: string }
               request_id: { type: string }
+              violations:
+                type: array
+                items: { $ref: '#/components/schemas/ScheduleViolation' }
   schemas:
+    Roster:
+      type: object
+      required: [id, location_id, location_name, week_start, timezone, state]
+      properties:
+        id: { type: string, format: uuid }
+        location_id: { type: string, format: uuid }
+        location_name: { type: string }
+        week_start: { type: string, format: date }
+        timezone: { type: string }
+        state: { type: string, enum: [draft, published, archived] }
+    RosterPage:
+      type: object
+      required: [items, offset, limit, has_more]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Roster' }
+        offset: { type: integer }
+        limit: { type: integer }
+        has_more: { type: boolean }
+    RosterDetail:
+      type: object
+      required: [roster, shifts]
+      properties:
+        roster: { $ref: '#/components/schemas/Roster' }
+        shifts:
+          type: array
+          items: { $ref: '#/components/schemas/Shift' }
+    Shift:
+      type: object
+      required: [id, job_role_id, job_role_name, starts_at, ends_at, employee_id, employee_name]
+      properties:
+        id: { type: string, format: uuid }
+        job_role_id: { type: string, format: uuid }
+        job_role_name: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        employee_id: { type: string, nullable: true }
+        employee_name: { type: string, nullable: true }
+    ShiftInput:
+      type: object
+      additionalProperties: false
+      required: [job_role_id, starts_at, ends_at]
+      properties:
+        job_role_id: { type: string, format: uuid }
+        starts_at: { type: string, format: date-time, description: 'Explicit offset required. Start must fall within the roster local week.' }
+        ends_at: { type: string, format: date-time, description: 'Later than start, at most 24 elapsed hours. Overnight Sunday shifts may end on Monday.' }
+    AssignmentInput:
+      type: object
+      additionalProperties: false
+      required: [employee_id]
+      properties:
+        employee_id: { type: string, format: uuid }
+    ScheduleViolation:
+      type: object
+      required: [code, severity, message]
+      properties:
+        code: { type: string }
+        severity: { type: string, enum: [hard, warning] }
+        message: { type: string }
+        related_shift_id: { type: string, format: uuid }
+        week_start: { type: string, format: date }
+    ShiftResult:
+      type: object
+      required: [shift, violations]
+      properties:
+        shift: { $ref: '#/components/schemas/Shift' }
+        violations:
+          type: array
+          items: { $ref: '#/components/schemas/ScheduleViolation' }
     Employee:
       type: object
       required: [id, display_name, active, job_role_ids]

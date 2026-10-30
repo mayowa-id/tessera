@@ -8,6 +8,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Assignment struct {
+	OrgID      pgtype.UUID
+	ShiftID    pgtype.UUID
+	EmployeeID pgtype.UUID
+	During     pgtype.Range[pgtype.Timestamptz]
+}
+
 type Employee struct {
 	ID          pgtype.UUID
 	OrgID       pgtype.UUID
@@ -55,11 +62,30 @@ type Organization struct {
 	Timezone string
 }
 
+type Roster struct {
+	ID         pgtype.UUID
+	OrgID      pgtype.UUID
+	LocationID pgtype.UUID
+	WeekStart  pgtype.Date
+	Timezone   string
+	State      string
+}
+
 type Session struct {
 	TokenHash []byte
 	UserID    pgtype.UUID
 	ExpiresAt pgtype.Timestamptz
 	CreatedAt pgtype.Timestamptz
+}
+
+type Shift struct {
+	ID        pgtype.UUID
+	OrgID     pgtype.UUID
+	RosterID  pgtype.UUID
+	JobRoleID pgtype.UUID
+	StartsAt  pgtype.Timestamptz
+	EndsAt    pgtype.Timestamptz
+	During    pgtype.Range[pgtype.Timestamptz]
 }
 
 type User struct {

@@ -2,7 +2,7 @@
   <aside class="sidebar">
     <a class="wordmark" routerLink="/workspace" [queryParams]="{ org: selected() }">tessera<span>.</span></a>
     <p class="eyebrow">YOUR WORKSPACE</p>
-    <a routerLink="/workspace" [queryParams]="{ org: selected() }">Overview</a><span class="nav-current">Team & locations</span>
+    <a routerLink="/workspace" [queryParams]="{ org: selected() }">Overview</a><span class="nav-current">Team & locations</span><a routerLink="/rosters" [queryParams]="{ org: selected() }">Rosters</a>
     <a routerLink="/system">System connection</a>
     <div class="sidebar-bottom"><span>{{ auth.identity()?.user?.display_name }}</span><small>{{ membership()?.role }}</small></div>
   </aside>
