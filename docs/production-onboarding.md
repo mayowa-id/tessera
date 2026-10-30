@@ -41,6 +41,8 @@ Remove-Item Env:DATABASE_URL
 
 Use the direct URL only in this migration terminal; keep the pooled URL configured for the deployed backend. Migrations contain changes only, not production demo seed data.
 
+On WSL/Linux, run `bash scripts/migrate-neon.sh` from the repository root instead. It prompts for the Neon direct URL without displaying it or putting it in shell history, then shows migration status, applies pending migrations, and reports the resulting version. Keep TLS enabled in the URL. Do not paste the URL into chat.
+
 ## Account behavior
 
 Signup atomically creates an unverified owner, a separate organization, an admin membership, a first location, and a default Team member qualification. An organization name or matching email domain never grants access to an existing team. Email verification links expire after 24 hours; reset links after 30 minutes; invitations after 7 days. Tokens are stored only as hashes and consumed once. Link fragments keep secrets out of server URL logs. Clicking a link alone does not verify or accept anything: a form submission is required.
@@ -50,3 +52,9 @@ Invitations create pending employee records. Reinviting the same address reuses 
 Publication/audit is migration 5; team onboarding is migration 6. The merged release includes draft rosters, publication, personal published schedules, activity, onboarding, and appearance preferences. Databases at version 4, or at the publication version 5, upgrade normally through version 6. No manual migration-history changes are needed.
 
 Local tests use a capture mailer and never contact Resend. Actual production delivery and Vercel cookie/proxy behavior must be checked after deploying with the private credentials.
+
+## Check a signup email
+
+The recipient is the email entered on the signup form, trimmed and lowercased. The sender comes from `MAIL_FROM`; these are separate addresses. A successful send requires Resend to return a message ID. Backend logs record `email accepted by Resend` with `email_id`, which can be matched to the email in Resend's dashboard. Provider acceptance alone does not confirm inbox delivery: check the delivered/bounced status and the recipient inbox.
+
+If `/api/healthz` returns 500, inspect the backend Vercel Runtime Logs first. That endpoint does not need email credentials or a database query, so it must work before testing signup. Check startup errors such as missing database configuration, a trailing slash in `APP_ORIGIN`, or insecure production cookie settings. After changing Vercel variables, redeploy the backend.

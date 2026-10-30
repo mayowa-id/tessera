@@ -15,13 +15,15 @@ import (
 )
 
 type captureMailer struct {
-	body  string
-	fail  bool
-	count int
+	body        string
+	to, subject string
+	fail        bool
+	count       int
 }
 
-func (m *captureMailer) Send(_ context.Context, _, _, body string) error {
+func (m *captureMailer) Send(_ context.Context, to, subject, body string) error {
 	m.body = body
+	m.to, m.subject = to, subject
 	m.count++
 	if m.fail {
 		return errors.New("test delivery failure")
@@ -48,7 +50,10 @@ func testOnboarding(t *testing.T, pool *pgxpool.Pool) {
 		}
 		return w.Body.String()
 	}
-	post("/api/auth/signup", `{"email":"owner@example.com","password":"strong-password","name":"Owner","team":"Public Test","location":"First site","timezone":"Africa/Lagos"}`, 202, nil, "")
+	post("/api/auth/signup", `{"email":" Owner@Example.com ","password":"strong-password","name":"Owner","team":"Public Test","location":"First site","timezone":"Africa/Lagos"}`, 202, nil, "")
+	if mail.to != "owner@example.com" || mail.count != 1 || mail.subject != "Verify your Tessera team" || !strings.Contains(mail.body, "https://app.example.com/verify-email#") {
+		t.Fatalf("signup verification was not addressed to the registered inbox: recipient=%q subject=%q count=%d", mail.to, mail.subject, mail.count)
+	}
 	token := mail.token()
 	post("/api/auth/login", `{"email":"owner@example.com","password":"strong-password"}`, 403, nil, "")
 	post("/api/auth/verify", `{"token":"`+token+`","password":"wrong-password"}`, 400, nil, "")

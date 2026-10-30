@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -17,6 +18,7 @@ type Mailer interface {
 type ResendMailer struct {
 	Key, From string
 	Client    *http.Client
+	Logger    *slog.Logger
 }
 
 func (m ResendMailer) Send(ctx context.Context, to, subject, body string) error {
@@ -39,9 +41,18 @@ func (m ResendMailer) Send(ctx context.Context, to, subject, body string) error 
 		return fmt.Errorf("email delivery unavailable")
 	}
 	defer res.Body.Close()
-	_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, 4096))
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, 4096))
 		return fmt.Errorf("email provider status %d", res.StatusCode)
+	}
+	var accepted struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(io.LimitReader(res.Body, 4096)).Decode(&accepted); err != nil || accepted.ID == "" {
+		return fmt.Errorf("email provider did not confirm message acceptance")
+	}
+	if m.Logger != nil {
+		m.Logger.Info("email accepted by Resend", "email_id", accepted.ID)
 	}
 	return nil
 }

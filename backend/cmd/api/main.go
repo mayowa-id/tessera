@@ -51,7 +51,7 @@ func run(logger *slog.Logger) error {
 	staffAdmin := staff.NewHandler(staff.NewPostgresStore(pool), identity.RequireManager, logger)
 	var mailer auth.Mailer
 	if os.Getenv("RESEND_API_KEY") != "" && os.Getenv("MAIL_FROM") != "" {
-		mailer = auth.ResendMailer{Key: os.Getenv("RESEND_API_KEY"), From: os.Getenv("MAIL_FROM")}
+		mailer = auth.ResendMailer{Key: os.Getenv("RESEND_API_KEY"), From: os.Getenv("MAIL_FROM"), Logger: logger}
 	}
 	onboarding := auth.NewOnboarding(identity, pool, mailer)
 	rosterAdmin := roster.NewHandler(roster.NewPostgresStore(pool), identity.RequireManager, identity.RequireMember, logger)

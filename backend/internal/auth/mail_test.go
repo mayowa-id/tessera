@@ -30,12 +30,23 @@ func TestResendDelivery(t *testing.T) {
 				if body.From != "Tessera <onboarding@example.com>" || len(body.To) != 1 || body.To[0] != "user@example.com" || body.Text != "Test link" {
 					t.Fatal("invalid email")
 				}
-				return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(`{}`)), Header: make(http.Header)}, nil
+				return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(`{"id":"test-message-id"}`)), Header: make(http.Header)}, nil
 			})}}
 			err := m.Send(context.Background(), "user@example.com", "Account link", "Test link")
 			if (err != nil) != (status != 200) {
 				t.Fatalf("status %d: %v", status, err)
 			}
 		})
+	}
+}
+
+func TestResendRequiresAcceptanceID(t *testing.T) {
+	for _, body := range []string{`{}`, `{"id":""}`, `<html>Proxy error</html>`} {
+		m := ResendMailer{Key: "test-key", From: "onboarding@example.com", Client: &http.Client{Transport: transportFunc(func(*http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
+		})}}
+		if err := m.Send(context.Background(), "user@example.com", "Verify", "Test"); err == nil {
+			t.Fatal("claimed email success without a provider acceptance id")
+		}
 	}
 }
