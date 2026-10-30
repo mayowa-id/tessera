@@ -1,8 +1,8 @@
 import { Component, computed, input } from '@angular/core';
-import { LucideDynamicIcon, LucideGrid2X2, LucideSun, LucideMoon, LucideMonitor, LucideArrowUpRight, LucideArrowDown, LucideArrowLeft, LucideArrowRight } from '@lucide/angular';
+import { LucideDynamicIcon, LucideSun, LucideMoon, LucideMonitor, LucideArrowUpRight, LucideArrowDown, LucideArrowLeft, LucideArrowRight } from '@lucide/angular';
 
 const icons = {
-  grid: LucideGrid2X2, sun: LucideSun, moon: LucideMoon, monitor: LucideMonitor,
+  sun: LucideSun, moon: LucideMoon, monitor: LucideMonitor,
   'arrow-up-right': LucideArrowUpRight, 'arrow-down': LucideArrowDown,
   'arrow-left': LucideArrowLeft, 'arrow-right': LucideArrowRight,
 };

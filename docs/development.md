@@ -23,7 +23,7 @@ npx --yes npm@11.6.2 ci
 npm start
 ```
 
-Open http://localhost:4200 to explore the sample workspace; `/system` shows connection diagnostics. Angular proxies `/api` to http://localhost:8080 during development. `/api/healthz` confirms the process is alive; `/api/readyz` returns 200 when PostgreSQL is reachable and 503 otherwise. Readiness does not yet assert schema version. Use the exact configured frontend origin; `localhost` and `127.0.0.1` are different origins.
+Open http://localhost:4200 to explore the sample workspace. Health checks are internal endpoints used by development tools and monitoring; they do not have a customer-facing page. Angular proxies `/api` to http://localhost:8080 during development. `/api/healthz` confirms the process is alive; `/api/readyz` returns 200 when PostgreSQL is reachable and 503 otherwise. Readiness does not yet assert schema version. Use the exact configured frontend origin; `localhost` and `127.0.0.1` are different origins.
 
 If you change database credentials in `.env`, update `DATABASE_URL` too. Compose initialization credentials apply only when its database volume is first created.
 

@@ -14,6 +14,5 @@ export const routes: Routes = [
   { path: 'my-shifts', canActivate: [signedInGuard], loadComponent: () => import('./my-shifts').then(module => module.MyShifts) },
   { path: 'time-off', canActivate: [signedInGuard], loadComponent: () => import('./time-off').then(module => module.TimeOff) },
   { path: 'activity', canActivate: [managerGuard], loadComponent: () => import('./activity').then(module => module.Activity) },
-  { path: 'system', loadComponent: () => import('./foundation').then(module => module.Foundation) },
   { path: '**', redirectTo: '' },
 ];

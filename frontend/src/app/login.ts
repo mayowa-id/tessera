@@ -12,7 +12,7 @@ import { Icon } from './icon';
       <section class="login-story">
         <a class="wordmark" routerLink="/">tessera<span>.</span></a>
         <div><p class="eyebrow">EVERY SHIFT IN ITS PLACE</p><h1>A good week<br> starts with<br> a <em>plan.</em></h1><p class="story-copy">A shared space for your people,<br>their time, and the work ahead.</p></div>
-        <p class="story-footer">Built thoughtfully, one shift at a time.</p>
+
       </section>
       <section class="login-form" aria-labelledby="login-title">
         <p class="eyebrow">YOUR TEAM'S WORKSPACE</p><h2 id="login-title">Welcome back.</h2><p class="muted">Sign in to see where the week takes you.</p>
