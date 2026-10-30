@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { timeout } from 'rxjs';
+import { Icon } from './icon';
 
-@Component({ selector: 'app-foundation', templateUrl: './foundation.html', styleUrl: './foundation.css' })
+@Component({ selector: 'app-foundation', imports: [Icon], templateUrl: './foundation.html', styleUrl: './foundation.css' })
 export class Foundation {
   private readonly http = inject(HttpClient);
   readonly state = signal<'checking' | 'ready' | 'unavailable'>('checking');

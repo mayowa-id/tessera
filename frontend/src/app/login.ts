@@ -1,16 +1,17 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService, apiError } from './auth.service';
+import { Icon } from './icon';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Icon],
   template: `
     <main class="login-page">
       <section class="login-story">
         <a class="wordmark" routerLink="/">tessera<span>.</span></a>
-        <div><p class="eyebrow">EVERY SHIFT IN ITS PLACE</p><h1>A good week<br>starts with<br>a <em>plan.</em></h1><p class="story-copy">A shared space for your people,<br>their time, and the work ahead.</p></div>
+        <div><p class="eyebrow">EVERY SHIFT IN ITS PLACE</p><h1>A good week<br> starts with<br> a <em>plan.</em></h1><p class="story-copy">A shared space for your people,<br>their time, and the work ahead.</p></div>
         <p class="story-footer">Built thoughtfully, one shift at a time.</p>
       </section>
       <section class="login-form" aria-labelledby="login-title">
@@ -19,10 +20,10 @@ import { AuthService, apiError } from './auth.service';
           <label for="email">Email address</label><input id="email" type="email" autocomplete="username" formControlName="email" placeholder="you@yourteam.com" [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid">
           <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" formControlName="password" placeholder="Your password" [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid">
           @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-          <button type="submit" [disabled]="busy() || restoring()">{{ busy() ? 'Signing in...' : restoring() ? 'Checking session...' : 'Sign in' }} <span aria-hidden="true">↗</span></button>
+          <button type="submit" [disabled]="busy() || restoring()">{{ busy() ? 'Signing in...' : restoring() ? 'Checking session...' : 'Sign in' }} <app-icon name="arrow-up-right" /></button>
         </form>
-        <p class="form-note">New here? <a class="text-link" routerLink="/signup">Sign up & create a team</a></p><a class="text-link" routerLink="/demo">Explore the app without an account ↗</a>
-        <a class="text-link" routerLink="/forgot-password">Forgot password?</a> · <a class="text-link" routerLink="/resend">Verify email</a>
+        <p class="form-note">New here? <a class="text-link" routerLink="/signup">Sign up & create a team</a></p>
+        <nav class="login-links" aria-label="Account help"><a class="text-link" routerLink="/demo">Explore without an account <app-icon name="arrow-up-right" /></a><a class="text-link" routerLink="/forgot-password">Forgot password?</a><a class="text-link" routerLink="/resend">Verify email</a></nav>
       </section>
     </main>
   `,
@@ -30,7 +31,6 @@ import { AuthService, apiError } from './auth.service';
 export class Login {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
   readonly busy = signal(false);
   readonly restoring = signal(true);
   readonly error = signal('');
@@ -40,10 +40,11 @@ export class Login {
   });
 
   constructor() {
-    if (this.route.snapshot.queryParamMap.get('reason') === 'unavailable') this.error.set('The service is unavailable. Please try again.');
     this.auth.restore().subscribe({
       next: identity => { this.restoring.set(false); if (identity) void this.router.navigateByUrl('/workspace'); },
-      error: error => { this.restoring.set(false); this.error.set(apiError(error)); },
+      // This optional check is only for returning users. A failed check must not
+      // present a failed sign-in before the visitor has submitted anything.
+      error: () => { this.restoring.set(false); },
     });
   }
 

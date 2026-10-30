@@ -65,6 +65,7 @@ export function apiError(error: unknown): string {
   if (error instanceof HttpErrorResponse) {
     if (error.status === 0) return 'Unable to reach the API. Check your connection and try again.';
     if (typeof error.error?.message === 'string') return error.error.message;
+    if (error.status >= 500) return 'The service is unavailable. Please try again.';
   }
   return 'Something went wrong. Please try again.';
 }

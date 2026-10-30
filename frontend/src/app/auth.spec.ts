@@ -79,4 +79,25 @@ describe('Session access', () => {
     expect(fixture.nativeElement.textContent).toContain('Email or password is incorrect.');
     expect(fixture.componentInstance.busy()).toBe(false);
   });
+
+  it('opens without an error for a visitor with no session', () => {
+    const fixture = TestBed.createComponent(Login);
+    http.expectOne('/api/auth/me').flush({}, { status: 401, statusText: 'Unauthorized' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(fixture.componentInstance.restoring()).toBe(false);
+  });
+
+  it('keeps a failed background session check separate from a failed sign-in', () => {
+    const fixture = TestBed.createComponent(Login);
+    http.expectOne('/api/auth/me').flush({}, { status: 503, statusText: 'Unavailable' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(fixture.componentInstance.restoring()).toBe(false);
+    fixture.componentInstance.form.setValue({ email: 'manager@example.com', password: 'test-password' });
+    fixture.componentInstance.submit();
+    http.expectOne('/api/auth/login').flush({}, { status: 503, statusText: 'Unavailable' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain('The service is unavailable');
+  });
 });

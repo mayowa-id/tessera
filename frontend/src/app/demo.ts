@@ -1,11 +1,12 @@
 import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Icon } from './icon';
 import { localMonday } from './roster-time';
 
 type DemoView = 'overview' | 'rosters' | 'team';
 interface SamplePerson { name: string; initials: string; role: string; hours: number; days: (string | null)[]; }
 
-@Component({ selector: 'app-demo', imports: [RouterLink], templateUrl: './demo.html', styleUrl: './demo.css' })
+@Component({ selector: 'app-demo', imports: [RouterLink, Icon], templateUrl: './demo.html', styleUrl: './demo.css' })
 export class Demo {
   private readonly route = inject(ActivatedRoute);
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('signupDialog');
