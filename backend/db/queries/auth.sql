@@ -1,5 +1,5 @@
 -- name: FindLoginUser :one
-SELECT id::text AS id, email, display_name, password_hash FROM users WHERE email = $1;
+SELECT id::text AS id, email, display_name, password_hash,email_verified FROM users WHERE email = $1;
 
 -- name: CreateSession :exec
 INSERT INTO sessions (token_hash, user_id, expires_at)
@@ -8,7 +8,7 @@ VALUES ($1, sqlc.arg(user_id)::text::uuid, $2);
 -- name: SessionUser :one
 SELECT u.id::text AS id, u.email, u.display_name
 FROM sessions s JOIN users u ON u.id = s.user_id
-WHERE s.token_hash = $1 AND s.expires_at > now();
+WHERE s.token_hash = $1 AND s.expires_at > now() AND u.email_verified;
 
 -- name: DeleteSession :exec
 DELETE FROM sessions WHERE token_hash = $1;

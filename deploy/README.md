@@ -19,7 +19,7 @@ Set `APP_ORIGIN` to the exact frontend origin, with no trailing slash, and keep 
 
 Deploy the backend first and check `https://YOUR-BACKEND.vercel.app/api/healthz` and `/api/readyz`. Readiness requires the configured PostgreSQL database.
 
-Then add these rewrites to the existing `frontend/vercel.json`, replacing the example hostname with the real backend hostname:
+The committed `frontend/vercel.json` targets `https://tessera-backend.vercel.app`. For another deployment, change the destination:
 
 ```json
 "rewrites": [
@@ -28,12 +28,12 @@ Then add these rewrites to the existing `frontend/vercel.json`, replacing the ex
 ]
 ```
 
-Preserve the existing framework, install, build, and output settings. Do not deploy the placeholder hostname. Keep the API rewrite before the SPA fallback. The API origin cannot be filled in until the backend project has a deployment URL. Angular's local proxy is not used in production.
+Preserve the existing framework, install, build, and output settings. Do not deploy the placeholder hostname. Keep the API rewrite before the SPA fallback. Angular's local proxy is not used in production.
 
 This proxy keeps browser requests on the frontend origin. When authentication is added, verify cookies and CSRF through that origin. If backend deployment protection is enabled, configure permitted server-to-server access; a protected backend will otherwise block the frontend proxy. Keep preview deployments paired with a non-production database and the intended backend.
 
 Future background work must use bounded scheduled invocations or a separate worker service rather than assuming an API process runs continuously.
 
-No Vercel projects have been created or deployed from this workspace.
+The user has deployed `tessera-ui.vercel.app` and `tessera-backend.vercel.app`. See [production onboarding](../docs/production-onboarding.md) for the Neon prefix, email configuration, migration 5, and release checks. These local changes have not been deployed from this workspace.
 
 References: [Go preset and entry points](https://vercel.com/docs/functions/runtimes/go), [Angular on Vercel](https://vercel.com/docs/frameworks/frontend).

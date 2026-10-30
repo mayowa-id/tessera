@@ -48,8 +48,13 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 	staffAdmin := staff.NewHandler(staff.NewPostgresStore(pool), identity.RequireManager, logger)
+	var mailer auth.Mailer
+	if os.Getenv("RESEND_API_KEY") != "" && os.Getenv("MAIL_FROM") != "" {
+		mailer = auth.ResendMailer{Key: os.Getenv("RESEND_API_KEY"), From: os.Getenv("MAIL_FROM")}
+	}
+	onboarding := auth.NewOnboarding(identity, pool, mailer)
 	rosterAdmin := roster.NewHandler(roster.NewPostgresStore(pool), identity.RequireManager, logger)
-	server := &http.Server{Addr: cfg.Address, Handler: platform.Router(pool, logger, identity.Register, staffAdmin.Register, rosterAdmin.Register), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: cfg.Address, Handler: platform.Router(pool, logger, identity.Register, onboarding.Register, staffAdmin.Register, rosterAdmin.Register), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	result := make(chan error, 1)
 	go func() { logger.Info("API listening", "address", cfg.Address); result <- server.ListenAndServe() }()
 	select {

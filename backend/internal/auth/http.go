@@ -125,6 +125,10 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, 401, "INVALID_CREDENTIALS", "Email or password is incorrect.")
 		return
 	}
+	if !user.Verified {
+		h.fail(w, r, 403, "EMAIL_UNVERIFIED", "Verify your email before signing in. You can request a new verification email.")
+		return
+	}
 	memberships, err := h.store.Memberships(r.Context(), user.ID)
 	if err != nil {
 		h.internal(w, r, err)

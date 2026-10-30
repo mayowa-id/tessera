@@ -15,6 +15,12 @@ type Config struct {
 
 func LoadConfig() (Config, error) {
 	c := Config{Address: os.Getenv("HTTP_ADDR"), DatabaseURL: os.Getenv("DATABASE_URL")}
+	if c.DatabaseURL == "" {
+		c.DatabaseURL = os.Getenv("TS_POSTGRES_URL")
+	}
+	if c.DatabaseURL == "" {
+		c.DatabaseURL = os.Getenv("TS_DATABASE_URL")
+	}
 	// Vercel's Go preset supplies PORT; it takes precedence over local settings.
 	if port := os.Getenv("PORT"); port != "" {
 		number, err := strconv.Atoi(port)
@@ -30,7 +36,7 @@ func LoadConfig() (Config, error) {
 		return c, fmt.Errorf("HTTP_ADDR must be host:port: %w", err)
 	}
 	if c.DatabaseURL == "" {
-		return c, fmt.Errorf("DATABASE_URL is required")
+		return c, fmt.Errorf("DATABASE_URL or TS_POSTGRES_URL is required")
 	}
 	c.AppOrigin = os.Getenv("APP_ORIGIN")
 	if c.AppOrigin == "" {

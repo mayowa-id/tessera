@@ -72,6 +72,7 @@ func TestPostgresIdentity(t *testing.T) {
 			t.Fatalf("apply %s: %v", file, err)
 		}
 	}
+	t.Run("public team onboarding", func(t *testing.T) { testOnboarding(t, pool) })
 	// Repeated seeding is intentional: no duplicate staff, roles, or memberships.
 	for range 2 {
 		if err = demo.Seed(ctx, pool, "correct-password"); err != nil {

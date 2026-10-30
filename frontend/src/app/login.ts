@@ -9,7 +9,7 @@ import { AuthService, apiError } from './auth.service';
   template: `
     <main class="login-page">
       <section class="login-story">
-        <a class="wordmark" routerLink="/login">tessera<span>.</span></a>
+        <a class="wordmark" routerLink="/">tessera<span>.</span></a>
         <div><p class="eyebrow">EVERY SHIFT IN ITS PLACE</p><h1>A good week<br>starts with<br>a <em>plan.</em></h1><p class="story-copy">A shared space for your people,<br>their time, and the work ahead.</p></div>
         <p class="story-footer">Built thoughtfully, one shift at a time.</p>
       </section>
@@ -21,8 +21,8 @@ import { AuthService, apiError } from './auth.service';
           @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
           <button type="submit" [disabled]="busy() || restoring()">{{ busy() ? 'Signing in...' : restoring() ? 'Checking session...' : 'Sign in' }} <span aria-hidden="true">↗</span></button>
         </form>
-        <p class="form-note">Your organization provides your account. Ask your manager if you need access.</p>
-        <a class="text-link" routerLink="/system">Check system connection</a>
+        <p class="form-note">New here? <a routerLink="/signup">Create a team</a> or use your invitation link.</p>
+        <a class="text-link" routerLink="/forgot-password">Forgot password?</a> · <a class="text-link" routerLink="/resend">Verify email</a>
       </section>
     </main>
   `,

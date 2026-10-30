@@ -1,11 +1,115 @@
 openapi: 3.0.3
 info:
   title: Tessera API
-  version: 0.4.0
+  version: 0.5.0
   description: Foundation, identity, staff administration, and draft rosters with scheduling checks. Browser requests use the frontend same-origin API proxy.
 servers:
   - url: http://localhost:8080
 paths:
+  /api/auth/signup:
+    post:
+      operationId: signupTeam
+      summary: Create a pending owner account and isolated team; send verification email
+      parameters:
+        - $ref: '#/components/parameters/BrowserMutation'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name, team, location]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                password: { type: string, minLength: 12, maxLength: 72, description: 12–72 UTF-8 bytes }
+                name: { type: string, minLength: 1, maxLength: 120 }
+                team: { type: string, minLength: 1, maxLength: 120 }
+                location: { type: string, minLength: 1, maxLength: 120 }
+                timezone: { type: string, default: Africa/Lagos }
+      responses:
+        '202': { $ref: '#/components/responses/OnboardingMessage' }
+        '400': { description: Invalid input }
+        '403': { description: Origin rejected }
+        '429': { description: Throttled }
+        '503': { description: Email unavailable or delivery failed; retry using resend }
+  /api/auth/resend:
+    post:
+      operationId: resendVerification
+      parameters:
+        - $ref: '#/components/parameters/BrowserMutation'
+      requestBody: { $ref: '#/components/requestBodies/AccountEmail' }
+      responses:
+        '202': { $ref: '#/components/responses/OnboardingMessage' }
+        '429': { description: Throttled }
+        '503': { description: Email unavailable }
+  /api/auth/forgot-password:
+    post:
+      operationId: requestPasswordReset
+      parameters:
+        - $ref: '#/components/parameters/BrowserMutation'
+      requestBody: { $ref: '#/components/requestBodies/AccountEmail' }
+      responses:
+        '202': { $ref: '#/components/responses/OnboardingMessage' }
+        '429': { description: Throttled }
+        '503': { description: Email unavailable }
+  /api/auth/verify:
+    post:
+      operationId: verifyOwnerEmail
+      parameters:
+        - $ref: '#/components/parameters/BrowserMutation'
+      requestBody: { $ref: '#/components/requestBodies/AccountToken' }
+      responses:
+        '200': { $ref: '#/components/responses/OnboardingMessage' }
+        '400': { description: Invalid or expired token or incorrect password }
+        '429': { description: Throttled }
+  /api/auth/reset-password:
+    post:
+      operationId: resetPassword
+      parameters:
+        - $ref: '#/components/parameters/BrowserMutation'
+      requestBody: { $ref: '#/components/requestBodies/AccountToken' }
+      responses:
+        '200': { $ref: '#/components/responses/OnboardingMessage' }
+        '400': { description: Invalid or expired token or password }
+        '429': { description: Throttled }
+  /api/auth/join:
+    post:
+      operationId: acceptTeamInvitation
+      summary: Accept a one-use invitation; existing accounts must supply their existing password
+      parameters:
+        - $ref: '#/components/parameters/BrowserMutation'
+      requestBody: { $ref: '#/components/requestBodies/AccountToken' }
+      responses:
+        '200': { $ref: '#/components/responses/OnboardingMessage' }
+        '400': { description: Invalid or expired invitation or incorrect password }
+        '429': { description: Throttled }
+  /api/organizations/{orgID}/invitations:
+    post:
+      operationId: inviteTeammate
+      summary: Invite or replace a pending invitation; manager invitations require admin access
+      parameters:
+        - { name: orgID, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/BrowserMutation'
+        - { name: X-CSRF-Token, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, name]
+              properties:
+                email: { type: string, format: email }
+                name: { type: string, minLength: 1, maxLength: 120 }
+                role: { type: string, enum: [employee, manager], default: employee }
+      responses:
+        '202': { $ref: '#/components/responses/OnboardingMessage' }
+        '401': { description: Sign in required }
+        '403': { description: Role or CSRF rejected }
+        '404': { description: Organization inaccessible }
+        '409': { description: Already a member }
+        '429': { description: Throttled }
+        '503': { description: Invitation saved but email unavailable; send again to retry }
   /api/healthz:
     get:
       operationId: getLiveness
@@ -635,6 +739,26 @@ paths:
         '422': { $ref: '#/components/responses/Error' }
         '503': { $ref: '#/components/responses/Error' }
 components:
+  requestBodies:
+    AccountEmail:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email]
+            properties:
+              email: { type: string, format: email, maxLength: 254 }
+    AccountToken:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [token, password]
+            properties:
+              token: { type: string, minLength: 43, maxLength: 43 }
+              password: { type: string, minLength: 12, maxLength: 72 }
   securitySchemes:
     csrf:
       type: apiKey
@@ -649,6 +773,11 @@ components:
       in: cookie
       name: tessera_session
   parameters:
+    BrowserMutation:
+      name: X-Tessera-Request
+      in: header
+      required: true
+      schema: { type: string, enum: ['1'] }
     RosterID:
       in: path
       name: rosterID
@@ -686,6 +815,15 @@ components:
       required: true
       schema: { type: string, enum: ['1'] }
   responses:
+    OnboardingMessage:
+      description: Account action result; sign in separately after verification or acceptance
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message]
+            properties:
+              message: { type: string }
     Error:
       description: Structured request error; rate-limited responses include Retry-After
       content:
