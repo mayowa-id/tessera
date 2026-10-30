@@ -1,6 +1,6 @@
 # Tessera
 
-Every shift in its place. A learning project for building a Go + Angular + PostgreSQL roster application in a monorepo.
+Every shift in its place. A roster appliction built on Go + Angular + PostgreSQL.
 
 Current stage: the core roster workflow is implemented. Managers can manage staff, build drafts, publish validated rosters, archive ended weeks, and review activity. Employees can view their own published shifts and archived history. Availability and leave are next. Follow [the implementation plan](docs/implementation-plan.md) for the milestones.
 
