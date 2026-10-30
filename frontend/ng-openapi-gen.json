@@ -3,6 +3,7 @@
   "input": "../contracts/openapi.yaml",
   "output": "src/app/api",
   "services": true,
+  "endOfLineStyle": "lf",
   "promises": false,
   "enumStyle": "alias",
   "enumArray": false

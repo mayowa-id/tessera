@@ -2,7 +2,7 @@
 
 Every shift in its place. A learning project for building a Go + Angular + PostgreSQL roster application in a monorepo.
 
-Current stage: staff administration. Managers can create and edit employees, locations, job roles, and qualifications, or deactivate records while retaining their history. Draft rosters and scheduling come next. Follow [the implementation plan](docs/implementation-plan.md) for the milestones.
+Current stage: draft rosters and safe assignments. Managers can build weekly rosters, add/edit/remove shift slots, and assign qualified employees with scheduling checks. Publishing and employee schedule access come next. Follow [the implementation plan](docs/implementation-plan.md) for the milestones.
 
 The two primary application folders are `frontend/` (Angular) and `backend/` (Go). Each is independently deployable as its own Vercel project. Root-level documentation, contracts, and development infrastructure are shared.
 
@@ -69,6 +69,25 @@ Staff endpoints share manager authorization, session validation, and mutation CS
 
 ## Checks and generation
 
+## Draft rosters
+
+Open **Rosters** from a manager workspace. Choose a Monday and location, create a draft, then add shift slots with a required qualification and local start/end time. Each slot accepts one employee; the assignment selector offers active qualified staff. Edits are shown only after server confirmation, and rejected edits retain the previous assignment.
+
+- One roster per organization/location/week. The roster snapshots the organization's IANA timezone.
+- Shift start must fall inside the local roster week. Shifts last more than zero and at most 24 elapsed hours; Sunday overnight shifts may end on Monday.
+- Start and end controls use the roster timezone, regardless of the browser timezone. Skipped daylight-saving times are rejected; repeated times offer first/second occurrence choices.
+- Draft assignments reserve employee time across all locations. Overlap, inactive employees, missing qualifications, and less than 11 hours of rest are hard conflicts.
+- More than 40 actual elapsed hours in a local Monday-based week is a warning by default. Overnight hours are clipped into each affected week; daylight-saving changes use actual elapsed time.
+- These starter policies are configured in `backend/internal/scheduling/rules.go`. Weekly hard-limit mode is exercised by concurrency tests; it is not exposed as a settings screen yet.
+
+PostgreSQL exclusion constraints reject overlaps independently of application checks. Half-open `[start,end)` intervals allow database adjacency, but the separate rest rule may still reject adjacent assignments. Database triggers derive assignment intervals from shifts and synchronize time edits; clients cannot submit an independent reservation interval.
+
+Scheduling mutations acquire an organization-wide transaction advisory lock under explicit READ COMMITTED isolation, then lock affected employees in sorted order, the roster, and the shift. This deliberately serializes scheduling writes within each organization in v1. Employee locks coordinate with staff qualification/status edits; deadlocks/serialization failures receive at most three attempts. Future publish operations must use the same protocol.
+
+Changing staff qualifications or status can make an existing draft assignment unavailable. It stays visible for resolution, and subsequent assigned-shift edits revalidate it. Publishing and its complete validation pass are the next milestone.
+
+## Checks and generation
+
 From `backend/`:
 
 ```powershell
@@ -95,7 +114,9 @@ On Windows, Docker is optional if native PostgreSQL binaries are installed. From
 
 It does not use the Windows PostgreSQL service or its data directory. Use `-Port` to choose another test port if 15432 is occupied.
 
-From `frontend/`: `npm test -- --watch=false` and `npm run build`. The 14 frontend tests cover readiness, login/session behavior, employee restrictions, staff creation and deactivation, qualification selection, pagination, CSRF headers, and conflict errors. Backend tests cover identity, shared authorization, staff validation, and real database transactions/tenant boundaries. CI applies migrations against PostgreSQL and checks readiness plus generated SQL/client freshness.
+Add `-CheckMigrations` to validate and apply all migrations, roll back the latest migration, re-apply it, and then run the suite in the same disposable instance.
+
+From `frontend/`: `npm test -- --watch=false` and `npm run build`. The 23 frontend tests cover readiness, identity, staff administration, local/DST time conversion, and draft creation/assignment/conflict/unassignment/removal. Backend tests include pure scheduling rules and real database concurrency, interval triggers, transactions, and tenant boundaries. CI applies migrations against PostgreSQL and checks readiness plus generated SQL/client freshness.
 
 ## Architecture
 
@@ -106,15 +127,15 @@ flowchart LR
   Go -->|pgx / generated sqlc queries| PostgreSQL
 ```
 
-Feature modules will be added as we build them. Database constraints protect stored invariants; Go application services coordinate transactions and business rules. The OpenAPI contract describes health, authentication, and staff endpoints. Database queries are generated with sqlc; staff screens use Angular HTTP services/models generated by pinned `ng-openapi-gen`.
+Feature modules will be added as we build them. Database constraints protect stored invariants; Go application services coordinate transactions and business rules. The OpenAPI contract describes health, identity, staff, and draft scheduling endpoints. Database queries are generated with sqlc; staff and roster screens use generated Angular HTTP services/models. Client generation uses LF line endings for reproducibility across Windows and Linux.
 
 Run `npm run generate:api` from `frontend/` after changing `contracts/openapi.yaml`. Generated clients are committed so each Vercel project can build independently without reading sibling folders. CI regenerates and checks both SQL and Angular client output for drift. Edit the contract or SQL source rather than generated files.
 
 ## Verification
 
-Passed locally: the full Go suite including the real PostgreSQL identity/staff integration test, vet and API build; Angular production build and all 14 frontend tests; SQL and Angular client generation; and Goose migration validation/apply/rollback/re-apply. Native PostgreSQL 18 was used for isolated local verification, while CI targets PostgreSQL 17.
+Passed locally: the full Go suite including real PostgreSQL identity/staff/roster integration, vet and API build; Angular production build and all 23 frontend tests; SQL and Angular client generation; and Goose migration checks. Native PostgreSQL 18 is used for isolated local verification, while CI targets PostgreSQL 17.
 
-Database tests cover successful logins, session expiry, rate windows, repeatable seed data, cross-tenant reads and writes, qualification rollback, deactivation/history retention, and case-insensitive uniqueness. Temporary test servers are stopped after verification. Browser visual inspection has not been performed.
+Database tests cover identity/staff behavior, concurrent overlapping assignment (one winner), concurrent non-overlapping assignments against a hard weekly cap, cross-week rest, warnings, conflicting shift-edit rollback, trigger synchronization, forged interval rejection, tenant boundaries, and immutable non-draft state. Temporary test servers are stopped after verification. Browser visual inspection has not been performed.
 
 ## Hosting
 

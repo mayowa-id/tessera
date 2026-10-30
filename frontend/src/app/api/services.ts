@@ -3,3 +3,4 @@
 
 export { ApiService } from './services/api.service';
 export { StaffService } from './services/staff.service';
+export { RostersService } from './services/rosters.service';

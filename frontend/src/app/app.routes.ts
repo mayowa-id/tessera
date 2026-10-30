@@ -6,6 +6,7 @@ export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./login').then(module => module.Login) },
   { path: 'workspace', canActivate: [signedInGuard], loadComponent: () => import('./workspace').then(module => module.Workspace) },
   { path: 'staff', canActivate: [managerGuard], loadComponent: () => import('./staff').then(module => module.Staff) },
+  { path: 'rosters', canActivate: [managerGuard], loadComponent: () => import('./rosters').then(module => module.Rosters) },
   { path: 'system', loadComponent: () => import('./foundation').then(module => module.Foundation) },
   { path: '**', redirectTo: 'workspace' },
 ];

@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"tessera/backend/internal/demo"
+	"tessera/backend/internal/roster"
 	"tessera/backend/internal/staff"
 )
 
@@ -26,7 +27,7 @@ func TestPostgresIdentity(t *testing.T) {
 	if connection == "" {
 		t.Skip("set TEST_DATABASE_URL to run real PostgreSQL identity and tenant tests")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	admin, err := pgxpool.New(ctx, connection)
 	if err != nil {
@@ -85,6 +86,7 @@ func TestPostgresIdentity(t *testing.T) {
 	router := chi.NewRouter()
 	handler.Register(router)
 	staff.NewHandler(staff.NewPostgresStore(pool), handler.RequireManager, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
+	roster.NewHandler(roster.NewPostgresStore(pool), handler.RequireManager, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
 	w := request(router, "POST", "/api/auth/login", `{"email":"manager@tessera.local","password":"correct-password"}`, nil, "")
 	if w.Code != 200 {
 		t.Fatalf("database login: %d %s", w.Code, w.Body)
@@ -131,6 +133,7 @@ func TestPostgresIdentity(t *testing.T) {
 		t.Fatal("employee manager access allowed")
 	}
 	exerciseStaffAdministration(t, ctx, pool, router, cookie, employeeLogin.Result().Cookies()[0], csrfToken(cookie.Value), orgID, foreignOrg, foreignRole)
+	exerciseDraftRosters(t, ctx, pool, router, cookie, employeeLogin.Result().Cookies()[0], csrfToken(cookie.Value), orgID, foreignOrg, foreignRole)
 	if _, err = pool.Exec(ctx, `UPDATE sessions SET expires_at=now()-interval '1 second' WHERE token_hash=$1`, tokenHash(cookie.Value)); err != nil {
 		t.Fatal(err)
 	}

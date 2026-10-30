@@ -1,6 +1,7 @@
 param(
   [string]$PostgresBin = 'C:\Program Files\PostgreSQL\18\bin',
-  [ValidateRange(1024, 65535)][int]$Port = 15432
+  [ValidateRange(1024, 65535)][int]$Port = 15432,
+  [switch]$CheckMigrations
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,6 +32,14 @@ try {
   $env:TEST_DATABASE_URL = "postgres://tessera_test@127.0.0.1:$Port/postgres?sslmode=disable"
   Push-Location (Join-Path $workspacePath 'backend')
   try {
+    if ($CheckMigrations) {
+      & $goExecutable run github.com/pressly/goose/v3/cmd/goose@v3.24.3 -dir db/migrations validate
+      if ($LASTEXITCODE -ne 0) { throw 'Migration validation failed.' }
+      foreach ($migrationCommand in @('up', 'down', 'up')) {
+        & $goExecutable run github.com/pressly/goose/v3/cmd/goose@v3.24.3 -dir db/migrations postgres $env:TEST_DATABASE_URL $migrationCommand
+        if ($LASTEXITCODE -ne 0) { throw "Migration $migrationCommand failed." }
+      }
+    }
     & $goExecutable test ./... -count=1
     $testExitCode = $LASTEXITCODE
   } finally { Pop-Location }

@@ -2,7 +2,7 @@
 
 Build a shift roster application to learn the complete process of delivering a Go API and Angular frontend in one repository. Work through runnable milestones; the original six-to-eight-week estimate is a rough guide, not a deadline.
 
-Current progress: foundation, identity, and staff administration are implemented. The full backend suite, including identity and staff integration against real PostgreSQL, has passed locally, alongside vet/build, Angular production build and 14 frontend tests, SQL/Angular client generation, and migration apply/rollback/re-apply. Windows can repeat the real-database suite using `scripts/test-backend-postgres.ps1`. Draft rosters and safe assignments are the next feature milestone.
+Current progress: foundation, identity, staff administration, draft rosters, and safe assignments are implemented. Real PostgreSQL tests cover concurrent overlap and aggregate-limit attempts, interval triggers, rollback, qualifications, overnight/cross-week rules, and tenant isolation. Angular has 23 passing tests, including DST conversion and roster workflows. Windows can repeat database tests with `scripts/test-backend-postgres.ps1 -CheckMigrations`. Publishing, employee views, and audit events are next.
 
 ## 1. Scope and decisions
 
@@ -100,7 +100,7 @@ Done when a manager can create staff, assign qualifications, and reload the page
 4. Implement database overlap protection and transactional assignment immediately, before adding more workflows.
 5. Make shift edits revalidate existing assignments. All operations affecting assignment validity must use the same locking protocol.
 
-Done when a manager can build a weekly draft, adjacent shifts are allowed, invalid assignments return understandable errors, and concurrent requests cannot bypass scheduling rules.
+Done when a manager can build a weekly draft, adjacent intervals are recognized as non-overlapping (while still observing rest policy), invalid assignments return understandable errors, and concurrent requests cannot bypass scheduling rules.
 
 ### Milestone 4: Publish and employee access (core release)
 
@@ -142,7 +142,7 @@ For v1 keep canonical shift times on `shifts` and copy the interval to `assignme
 
 Enable `btree_gist` and enforce non-overlap for `(org_id, employee_id, during)` using equality for IDs and overlap for the range. Add a unique assignment constraint per shift and checks for valid intervals. Map exclusion/uniqueness violations to structured conflicts without leaking SQL internals.
 
-Use transactions and employee row locks for checks involving multiple rows, such as rest and weekly totals; an overlap constraint alone does not protect those rules. Under READ COMMITTED, acquire the locks before reading the current schedule, then validate and write. Every assignment, unassignment, shift edit, and later leave approval must honor this protocol. Lock affected employees in sorted order, then affected rosters, then shifts, with roster locks serializing mutations against publish. For edits whose affected employees are discovered first, re-read after locking and retry if the set changed. Bound retries for deadlocks or transient serialization failures.
+Use transactions and employee row locks for checks involving multiple rows, such as rest and weekly totals; an overlap constraint alone does not protect those rules. The implemented v1 protocol uses explicit READ COMMITTED plus an organization-wide transaction advisory lock before discovering assignments. Then lock affected employees in sorted order, the roster, and the shift before validating and writing. This trades write parallelism within one organization for a simple protocol that also protects edits and replacements. Staff qualification edits already lock their employee row. Publish and later leave operations must coordinate through this same protocol; finer locking can replace the organization lock when measured scale requires it. Deadlocks/serialization failures receive at most three attempts.
 
 Prove separately that concurrent overlapping assignments cannot both succeed and that non-overlapping assignments cannot together exceed a hard aggregate rule. Include simultaneous publication and assignment tests. For warning-only weekly hours, both assignments may succeed with warnings; use minimum rest or a hard-limit test policy for aggregate concurrency tests.
 
@@ -160,7 +160,7 @@ Prove separately that concurrent overlapping assignments cannot both succeed and
 
 For each milestone: explain the concept, implement one small vertical slice, run its checks, demonstrate it, and record the design tradeoff. Keep a short README with actual setup commands and an architecture diagram as the repository develops. Complete the core release before chasing the original plan's polish features.
 
-Immediate next task: Milestone 0 only. Inspect installed Go, Node, Angular prerequisites, and Docker; choose compatible pinned versions; scaffold the applications and prove frontend-to-API connectivity.
+Immediate next task: Milestone 4. Publish fully validated rosters, expose employees' own published shifts, add audit events, and test publication versus concurrent assignment.
 
 ## References
 
