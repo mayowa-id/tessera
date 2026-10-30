@@ -30,7 +30,7 @@
       <div class="table-scroll"><table class="directory-table"><thead><tr><th>Name</th><th>Qualification</th><th>Sample hours</th></tr></thead><tbody>@for (person of filteredPeople(); track person.name) { <tr><th><span class="sample-avatar" aria-hidden="true">{{ person.initials }}</span>{{ person.name }}</th><td>{{ person.role }}</td><td>{{ person.hours }} hours</td></tr> } @empty { <tr><td colspan="3">No sample teammates match this name.</td></tr> }</tbody></table></div>
       <section class="workspace-card"><p class="eyebrow">LOCATION</p><h2>Main site</h2><p>The sample team’s shared location, in the Africa/Lagos timezone.</p><button class="secondary" (click)="requireAccount('add your own locations')">Add a location</button></section>
     }
-    <footer class="demo-footer"><a routerLink="/about">About Tessera</a><span>Built thoughtfully, one shift at a time.</span></footer>
+    <footer class="demo-footer"><a routerLink="/about">About Tessera</a></footer>
   </main>
 </div>
 <dialog #signupDialog aria-labelledby="signup-prompt-title" aria-describedby="signup-prompt-description" class="signup-prompt">

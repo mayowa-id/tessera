@@ -14,7 +14,7 @@ import { Icon } from './icon';
  <tr><th>Sam Taylor</th><td>Off</td><td>10:00–18:00</td><td>10:00–18:00</td><td>Off</td><td>10:00–18:00</td></tr>
  <tr><th>Jordan Lee</th><td>08:00–16:00</td><td>Off</td><td>08:00–16:00</td><td>08:00–16:00</td><td>Off</td></tr>
  </tbody></table></div><p class="muted">Explore freely. Create a verified account when you are ready to save your own team and shifts.</p></section>
- <footer><span>Built thoughtfully, one shift at a time.</span><a routerLink="/signup">Bring your team along <app-icon name="arrow-up-right" /></a></footer>
+ <footer><a routerLink="/signup">Bring your team along <app-icon name="arrow-up-right" /></a></footer>
  </main>`,
  styles: [`:host{display:block}.welcome{max-width:1200px;margin:auto;padding:32px}.welcome header,.welcome nav,.welcome footer{display:flex;align-items:center;justify-content:space-between;gap:24px}.welcome nav a{text-decoration:none}.welcome-intro{padding:90px 0}.welcome h1{font:normal clamp(48px,7vw,88px)/1.05 Georgia,serif;letter-spacing:-3px;margin:22px 0}.welcome h1 em{color:var(--green)}.welcome-intro p{line-height:1.8;margin-bottom:32px}.welcome-intro>a{display:inline-block;margin:8px 24px 8px 0}.primary{text-decoration:none}.welcome footer{padding:60px 0 0;font-size:12px;color:var(--muted)}caption{text-align:left;padding:16px;font-size:12px}@media(max-width:600px){.welcome{padding:20px}.welcome header,.directory-heading{align-items:start;flex-direction:column}.welcome-intro{padding:55px 0}}`],
 })
