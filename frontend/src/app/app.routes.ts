@@ -2,7 +2,9 @@ import { Routes } from '@angular/router';
 import { managerGuard, signedInGuard } from './auth.service';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', loadComponent: () => import('./welcome').then(module => module.Welcome) },
+  { path: '', pathMatch: 'full', loadComponent: () => import('./demo').then(module => module.Demo) },
+  { path: 'demo', loadComponent: () => import('./demo').then(module => module.Demo) },
+  { path: 'about', loadComponent: () => import('./welcome').then(module => module.Welcome) },
   ...['signup', 'verify-email', 'resend', 'forgot-password', 'reset-password', 'join'].map(mode => ({ path: mode, data: { mode }, loadComponent: () => import('./onboarding').then(module => module.Onboarding) })),
   { path: 'invitations', canActivate: [managerGuard], loadComponent: () => import('./invitations').then(module => module.Invitations) },
   { path: 'login', loadComponent: () => import('./login').then(module => module.Login) },
@@ -12,5 +14,5 @@ export const routes: Routes = [
   { path: 'my-shifts', canActivate: [signedInGuard], loadComponent: () => import('./my-shifts').then(module => module.MyShifts) },
   { path: 'activity', canActivate: [managerGuard], loadComponent: () => import('./activity').then(module => module.Activity) },
   { path: 'system', loadComponent: () => import('./foundation').then(module => module.Foundation) },
-  { path: '**', redirectTo: 'workspace' },
+  { path: '**', redirectTo: '' },
 ];

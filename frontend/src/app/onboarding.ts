@@ -13,7 +13,7 @@ import { apiError } from './auth.service';
  @if(mode==='signup'||mode==='verify-email'||mode==='reset-password'||mode==='join') { <label>{{ mode==='join' ? 'Existing password, or choose one for a new account' : mode==='verify-email' ? 'Your account password' : 'Choose a password' }}<input formControlName="password" type="password" [attr.autocomplete]="mode==='verify-email'||mode==='join'?'current-password':'new-password'" minlength="12" maxlength="72" required></label><small>12–72 bytes. Use a unique password.</small> }
  @if(error()){<p class="error" role="alert">{{error()}}</p>}@if(message()){<p role="status">{{message()}}</p>}
  <button class="primary" [disabled]="busy()||complete()">{{busy()?'Please wait…':action}}</button></form>
- <p><a routerLink="/login">Sign in</a> · <a routerLink="/signup">Create a team</a></p><p><a routerLink="/resend">Request a verification email</a> · <a routerLink="/forgot-password">Reset password</a></p>
+ <p><a routerLink="/login">Sign in</a> · <a routerLink="/demo">Keep exploring</a></p><p><a routerLink="/resend">Request a verification email</a> · <a routerLink="/forgot-password">Reset password</a></p>
  </section></main>`,
  styles:[`.onboarding-page{max-width:760px;margin:auto;padding:36px 24px}.onboarding-card{max-width:520px;margin:56px auto}.onboarding-card h1{font:normal 42px Georgia,serif}.onboarding-card form,.onboarding-card label{display:grid;gap:10px}.onboarding-card form{gap:20px;margin:30px 0}.onboarding-card input{width:100%;padding:13px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--heading);font-size:16px}.onboarding-card label,.onboarding-card p,.onboarding-card small{font-size:13px;line-height:1.7}.primary:disabled{opacity:.6}`],
 })
@@ -24,9 +24,9 @@ export class Onboarding {
  readonly busy=signal(false); readonly complete=signal(false); readonly error=signal(''); readonly message=signal('');
  private readonly token=window.location.hash.slice(1);
  readonly form=inject(FormBuilder).nonNullable.group({name:[''],team:[''],location:['Main site'],timezone:[Intl.DateTimeFormat().resolvedOptions().timeZone||'Africa/Lagos'],email:[''],password:['']});
- readonly title=({signup:'Make room for your team.','verify-email':'Verify your email.',resend:'A fresh verification link.','forgot-password':'Find your way back.','reset-password':'Choose a new password.',join:'Join your team.'} as Record<string,string>)[this.mode];
+ readonly title=({signup:'Create your account.','verify-email':'Verify your email.',resend:'A fresh verification link.','forgot-password':'Find your way back.','reset-password':'Choose a new password.',join:'Join your team.'} as Record<string,string>)[this.mode];
  readonly description=this.mode==='signup'?'Create your team and first location. Verify your email, then invite your people.':this.mode==='join'?'Your invitation links your account to the team. Existing members must use their current password.':this.mode==='verify-email'?'Enter the password you chose when creating your team.':'Follow the steps to securely access your account.';
- readonly action=this.mode==='signup'?'Create team':this.mode==='join'?'Join team':this.mode==='verify-email'?'Verify email':this.mode==='reset-password'?'Reset password':'Send email';
+ readonly action=this.mode==='signup'?'Sign up & create a team':this.mode==='join'?'Join team':this.mode==='verify-email'?'Verify email':this.mode==='reset-password'?'Reset password':'Send email';
  constructor(){
   // Link secrets stay out of request URLs, server logs and navigation history.
   if(this.token)window.history.replaceState(null,'',window.location.pathname);

@@ -47,7 +47,7 @@ export const signedInGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
   return auth.restore().pipe(
-    map(identity => identity ? true : router.createUrlTree(['/login'])),
+    map(identity => identity ? true : router.createUrlTree(['/demo'])),
     catchError(() => of(router.createUrlTree(['/login'], { queryParams: { reason: 'unavailable' } }))),
   );
 };
@@ -56,7 +56,7 @@ export const managerGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
   return auth.restore().pipe(
-    map(identity => !identity ? router.createUrlTree(['/login']) : identity.memberships.some(org => org.role === 'admin' || org.role === 'manager') ? true : router.createUrlTree(['/workspace'])),
+    map(identity => !identity ? router.createUrlTree(['/demo']) : identity.memberships.some(org => org.role === 'admin' || org.role === 'manager') ? true : router.createUrlTree(['/workspace'])),
     catchError(() => of(router.createUrlTree(['/login'], { queryParams: { reason: 'unavailable' } }))),
   );
 };

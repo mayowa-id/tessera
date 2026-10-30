@@ -21,7 +21,7 @@ import { AuthService, apiError } from './auth.service';
           @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
           <button type="submit" [disabled]="busy() || restoring()">{{ busy() ? 'Signing in...' : restoring() ? 'Checking session...' : 'Sign in' }} <span aria-hidden="true">↗</span></button>
         </form>
-        <p class="form-note">New here? <a routerLink="/signup">Create a team</a> or use your invitation link.</p>
+        <p class="form-note">New here? <a class="text-link" routerLink="/signup">Sign up & create a team</a></p><a class="text-link" routerLink="/demo">Explore the app without an account ↗</a>
         <a class="text-link" routerLink="/forgot-password">Forgot password?</a> · <a class="text-link" routerLink="/resend">Verify email</a>
       </section>
     </main>
