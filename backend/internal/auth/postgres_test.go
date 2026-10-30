@@ -16,7 +16,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"tessera/backend/internal/audit"
 	"tessera/backend/internal/demo"
+	"tessera/backend/internal/requestctx"
 	"tessera/backend/internal/roster"
 	"tessera/backend/internal/staff"
 )
@@ -86,7 +88,8 @@ func TestPostgresIdentity(t *testing.T) {
 	router := chi.NewRouter()
 	handler.Register(router)
 	staff.NewHandler(staff.NewPostgresStore(pool), handler.RequireManager, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
-	roster.NewHandler(roster.NewPostgresStore(pool), handler.RequireManager, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
+	roster.NewHandler(roster.NewPostgresStore(pool), handler.RequireManager, handler.RequireMember, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
+	audit.NewHandler(pool, handler.RequireManager, slog.New(slog.NewJSONHandler(io.Discard, nil))).Register(router)
 	w := request(router, "POST", "/api/auth/login", `{"email":"manager@tessera.local","password":"correct-password"}`, nil, "")
 	if w.Code != 200 {
 		t.Fatalf("database login: %d %s", w.Code, w.Body)
@@ -96,6 +99,7 @@ func TestPostgresIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	ctx = requestctx.WithUser(ctx, user.ID)
 	memberships, err := store.Memberships(ctx, user.ID)
 	if err != nil || len(memberships) != 1 {
 		t.Fatalf("memberships: %+v %v", memberships, err)
@@ -134,6 +138,7 @@ func TestPostgresIdentity(t *testing.T) {
 	}
 	exerciseStaffAdministration(t, ctx, pool, router, cookie, employeeLogin.Result().Cookies()[0], csrfToken(cookie.Value), orgID, foreignOrg, foreignRole)
 	exerciseDraftRosters(t, ctx, pool, router, cookie, employeeLogin.Result().Cookies()[0], csrfToken(cookie.Value), orgID, foreignOrg, foreignRole)
+	exercisePublication(t, ctx, pool, router, cookie, employeeLogin.Result().Cookies()[0], csrfToken(cookie.Value), orgID, foreignOrg)
 	if _, err = pool.Exec(ctx, `UPDATE sessions SET expires_at=now()-interval '1 second' WHERE token_hash=$1`, tokenHash(cookie.Value)); err != nil {
 		t.Fatal(err)
 	}

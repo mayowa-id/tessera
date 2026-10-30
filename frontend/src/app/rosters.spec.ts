@@ -78,6 +78,24 @@ describe('Draft roster workflow', () => {
     expect(fixture.componentInstance.violations()[0].severity).toBe('warning');
     expect(fixture.componentInstance.error()).toBe('');
   });
+  it('renders the confirmed employee after assignment, publication, and reopening', () => {
+    const fixture = start();
+    const select = fixture.nativeElement.querySelector('#assign-shift-a') as HTMLSelectElement;
+    select.value = 'person-a'; select.dispatchEvent(new Event('change'));
+    expect(select.value).toBe('');
+    const assigned = { ...shift, employee_id: 'person-a', employee_name: 'Sam' };
+    http.expectOne(base + '/rosters/roster-a/shifts/shift-a/assignment').flush({ shift: assigned, violations: [] });
+    fixture.detectChanges();
+    expect(select.value).toBe('person-a');
+    fixture.componentInstance.detail.set({ roster: { ...roster, state: 'published' }, shifts: [assigned] });
+    fixture.detectChanges();
+    expect((fixture.nativeElement.querySelector('#assign-shift-a') as HTMLSelectElement).value).toBe('person-a');
+    fixture.componentInstance.openRoster({ ...roster, state: 'published' });
+    fixture.detectChanges();
+    http.expectOne(base + '/rosters/roster-a').flush({ roster: { ...roster, state: 'published' }, shifts: [assigned] });
+    fixture.detectChanges();
+    expect((fixture.nativeElement.querySelector('#assign-shift-a') as HTMLSelectElement).value).toBe('person-a');
+  });
   it('unassigns and removes a shift only after server confirmation', () => {
     const assigned = { ...shift, employee_id: 'person-a', employee_name: 'Sam' };
     const fixture = start([assigned]);
@@ -96,5 +114,39 @@ describe('Draft roster workflow', () => {
     fixture.componentInstance.changeWeek('2026-11-03');
     http.expectNone(request => request.url === base + '/rosters');
     expect(fixture.componentInstance.error()).toContain('Choose a Monday');
+  });
+  it('publishes a fully assigned draft and adopts the complete validated snapshot', () => {
+    const assigned = { ...shift, employee_id: 'person-a', employee_name: 'Sam' };
+    const fixture = start([assigned]);
+    expect(fixture.componentInstance.readyToPublish()).toBe(true);
+    fixture.componentInstance.lifecycleAction.set('publish');
+    fixture.componentInstance.transition();
+    const publish = http.expectOne(base + '/rosters/roster-a/publish');
+    expect(publish.request.method).toBe('POST');
+    expect(publish.request.headers.get('X-CSRF-Token')).toBe('csrf-value');
+    publish.flush({ detail: { roster: { ...roster, state: 'published' }, shifts: [assigned] }, violations: [] });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.detail()?.roster.state).toBe('published');
+    expect(fixture.componentInstance.readyToPublish()).toBe(false);
+    expect(fixture.componentInstance.notice()).toContain('Employees can now see');
+  });
+  it('keeps the draft editable when publication validation fails', () => {
+    const fixture = start([{ ...shift, employee_id: 'person-a', employee_name: 'Sam' }]);
+    fixture.componentInstance.lifecycleAction.set('publish');
+    fixture.componentInstance.transition();
+    http.expectOne(base + '/rosters/roster-a/publish').flush({ message: 'The shift conflicts with scheduling rules.', violations: [{ code: 'QUALIFICATION_REQUIRED', severity: 'hard', message: 'Qualification is no longer held.', employee_id: 'person-a', shift_id: shift.id }] }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.detail()?.roster.state).toBe('draft');
+    expect(fixture.componentInstance.busy()).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Sam: Qualification is no longer held.');
+  });
+  it('archives an ended published roster while keeping its history', () => {
+    const fixture = start();
+    fixture.componentInstance.detail.set({ roster: { ...roster, week_start: '2020-01-06', state: 'published' }, shifts: [] });
+    expect(fixture.componentInstance.archiveReady()).toBe(true);
+    fixture.componentInstance.lifecycleAction.set('archive');
+    fixture.componentInstance.transition();
+    http.expectOne(base + '/rosters/roster-a/archive').flush({ detail: { roster: { ...roster, week_start: '2020-01-06', state: 'archived' }, shifts: [] }, violations: [] });
+    expect(fixture.componentInstance.detail()?.roster.state).toBe('archived');
   });
 });

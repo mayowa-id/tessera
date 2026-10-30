@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"tessera/backend/internal/audit"
 	"tessera/backend/internal/db"
 )
 
@@ -50,16 +51,35 @@ func (s *PostgresStore) Employee(ctx context.Context, org, id string) (Employee,
 }
 
 func (s *PostgresStore) SaveEmployee(ctx context.Context, org, id string, input EmployeeInput) (Employee, error) {
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
 		return Employee{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	q := s.queries.WithTx(tx)
 	creating := id == ""
+	var previous any
 	if !creating {
 		if _, err = q.LockEmployee(ctx, db.LockEmployeeParams{OrgID: org, ID: id}); err != nil {
 			return Employee{}, storeError(err)
+		}
+		before, err := employee(ctx, q, org, id)
+		if err != nil {
+			return Employee{}, err
+		}
+		previous = before
+		required, err := q.PublishedEmployeeRequirements(ctx, db.PublishedEmployeeRequirementsParams{OrgID: org, EmployeeID: id})
+		if err != nil {
+			return Employee{}, storeError(err)
+		}
+		roles := map[string]bool{}
+		for _, roleID := range input.JobRoleIDs {
+			roles[roleID] = true
+		}
+		for _, roleID := range required {
+			if !input.Active || !roles[roleID] {
+				return Employee{}, ErrPublishedAssignment
+			}
 		}
 	}
 	// Use a placeholder UUID for new records; only existing records can retain inactive roles.
@@ -99,6 +119,13 @@ func (s *PostgresStore) SaveEmployee(ctx context.Context, org, id string, input 
 	}
 	result, err := employee(ctx, q, org, id)
 	if err != nil {
+		return Employee{}, err
+	}
+	action := "employee.updated"
+	if creating {
+		action = "employee.created"
+	}
+	if err = audit.Record(ctx, q, org, "employee", id, result.DisplayName, action, previous, result); err != nil {
 		return Employee{}, err
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -143,21 +170,79 @@ func (s *PostgresStore) CatalogItem(ctx context.Context, org, kind, id string) (
 	return CatalogItem{}, ErrNotFound
 }
 func (s *PostgresStore) SaveCatalogItem(ctx context.Context, org, kind, id string, input CatalogInput) (CatalogItem, error) {
-	switch kind {
-	case "locations":
-		if id == "" {
-			row, err := s.queries.CreateLocation(ctx, db.CreateLocationParams{OrgID: org, Name: input.Name, Active: input.Active})
-			return CatalogItem{row.ID, row.Name, row.Active}, storeError(err)
-		}
-		row, err := s.queries.UpdateLocation(ctx, db.UpdateLocationParams{OrgID: org, ID: id, Name: input.Name, Active: input.Active})
-		return CatalogItem{row.ID, row.Name, row.Active}, storeError(err)
-	case "job-roles":
-		if id == "" {
-			row, err := s.queries.CreateJobRole(ctx, db.CreateJobRoleParams{OrgID: org, Name: input.Name, Active: input.Active})
-			return CatalogItem{row.ID, row.Name, row.Active}, storeError(err)
-		}
-		row, err := s.queries.UpdateJobRole(ctx, db.UpdateJobRoleParams{OrgID: org, ID: id, Name: input.Name, Active: input.Active})
-		return CatalogItem{row.ID, row.Name, row.Active}, storeError(err)
+	if kind != "locations" && kind != "job-roles" {
+		return CatalogItem{}, ErrNotFound
 	}
-	return CatalogItem{}, ErrNotFound
+	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		return CatalogItem{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	q := db.New(tx)
+	creating := id == ""
+	var previous any
+	if !creating {
+		if kind == "locations" {
+			row, err := q.LockStaffLocation(ctx, db.LockStaffLocationParams{OrgID: org, ID: id})
+			if err != nil {
+				return CatalogItem{}, storeError(err)
+			}
+			previous = CatalogItem{row.ID, row.Name, row.Active}
+		} else {
+			row, err := q.LockStaffJobRole(ctx, db.LockStaffJobRoleParams{OrgID: org, ID: id})
+			if err != nil {
+				return CatalogItem{}, storeError(err)
+			}
+			previous = CatalogItem{row.ID, row.Name, row.Active}
+		}
+		if !input.Active {
+			linked, err := q.CatalogHasPublishedShifts(ctx, db.CatalogHasPublishedShiftsParams{OrgID: org, Kind: kind, ID: id})
+			if err != nil {
+				return CatalogItem{}, storeError(err)
+			}
+			if linked {
+				return CatalogItem{}, ErrPublishedAssignment
+			}
+		}
+	}
+	var result CatalogItem
+	if kind == "locations" {
+		if creating {
+			row, writeErr := q.CreateLocation(ctx, db.CreateLocationParams{OrgID: org, Name: input.Name, Active: input.Active})
+			err = writeErr
+			result = CatalogItem{row.ID, row.Name, row.Active}
+		} else {
+			row, writeErr := q.UpdateLocation(ctx, db.UpdateLocationParams{OrgID: org, ID: id, Name: input.Name, Active: input.Active})
+			err = writeErr
+			result = CatalogItem{row.ID, row.Name, row.Active}
+		}
+	} else {
+		if creating {
+			row, writeErr := q.CreateJobRole(ctx, db.CreateJobRoleParams{OrgID: org, Name: input.Name, Active: input.Active})
+			err = writeErr
+			result = CatalogItem{row.ID, row.Name, row.Active}
+		} else {
+			row, writeErr := q.UpdateJobRole(ctx, db.UpdateJobRoleParams{OrgID: org, ID: id, Name: input.Name, Active: input.Active})
+			err = writeErr
+			result = CatalogItem{row.ID, row.Name, row.Active}
+		}
+	}
+	if err != nil {
+		return CatalogItem{}, storeError(err)
+	}
+	entity := "location"
+	if kind == "job-roles" {
+		entity = "job_role"
+	}
+	action := entity + ".updated"
+	if creating {
+		action = entity + ".created"
+	}
+	if err = audit.Record(ctx, q, org, entity, result.ID, result.Name, action, previous, result); err != nil {
+		return CatalogItem{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return CatalogItem{}, storeError(err)
+	}
+	return result, nil
 }

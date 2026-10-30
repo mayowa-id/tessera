@@ -53,3 +53,11 @@ export type { AssignShift$Params as AssignShift$Params } from './fn/rosters/assi
 export { assignShift as assignShift } from './fn/rosters/assign-shift';
 export type { UnassignShift$Params as UnassignShift$Params } from './fn/rosters/unassign-shift';
 export { unassignShift as unassignShift } from './fn/rosters/unassign-shift';
+export type { PublishRoster$Params as PublishRoster$Params } from './fn/rosters/publish-roster';
+export { publishRoster as publishRoster } from './fn/rosters/publish-roster';
+export type { ArchiveRoster$Params as ArchiveRoster$Params } from './fn/rosters/archive-roster';
+export { archiveRoster as archiveRoster } from './fn/rosters/archive-roster';
+export type { GetMyShifts$Params as GetMyShifts$Params } from './fn/schedules/get-my-shifts';
+export { getMyShifts as getMyShifts } from './fn/schedules/get-my-shifts';
+export type { ListActivity$Params as ListActivity$Params } from './fn/activity/list-activity';
+export { listActivity as listActivity } from './fn/activity/list-activity';

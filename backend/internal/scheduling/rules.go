@@ -23,6 +23,8 @@ type Policy struct {
 func DefaultPolicy() Policy { return Policy{MinimumRest: 11 * time.Hour, WeeklyHours: 40 * time.Hour} }
 
 type Violation struct {
+	EmployeeID     string `json:"employee_id,omitempty"`
+	ShiftID        string `json:"shift_id,omitempty"`
 	Code           string `json:"code"`
 	Severity       string `json:"severity"`
 	Message        string `json:"message"`
@@ -89,6 +91,10 @@ func Check(proposed Proposed, existing []Interval, zone *time.Location, policy P
 				violations = append(violations, Violation{Code: "WEEKLY_HOURS", Severity: severity, Message: "The assignment exceeds the weekly hours policy of " + strconv.FormatFloat(policy.WeeklyHours.Hours(), 'f', -1, 64) + " hours.", WeekStart: week.Format(time.DateOnly)})
 			}
 		}
+	}
+	for i := range violations {
+		violations[i].EmployeeID = proposed.EmployeeID
+		violations[i].ShiftID = proposed.ShiftID
 	}
 	return violations
 }
